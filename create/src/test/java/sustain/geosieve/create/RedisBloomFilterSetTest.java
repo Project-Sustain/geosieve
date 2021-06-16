@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +25,7 @@ public class RedisBloomFilterSetTest {
 
     @Test
     public void simpleOperations() {
-        List<String> testItems = List.of(
+        List<String> testItems = Arrays.asList(
                 "loxxe", "metis", "aemil", "sillh", "maezs"
         );
         String testFilter = "test";

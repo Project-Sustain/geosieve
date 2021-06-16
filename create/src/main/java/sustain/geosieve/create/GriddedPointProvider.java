@@ -1,7 +1,5 @@
 package sustain.geosieve.create;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Iterator;
 
 public class GriddedPointProvider implements Iterable<LatLng> {
@@ -22,8 +20,8 @@ public class GriddedPointProvider implements Iterable<LatLng> {
     }
 
     @Override
-    public @NotNull Iterator<LatLng> iterator() {
-        return new Iterator<>() {
+    public Iterator<LatLng> iterator() {
+        return new Iterator<LatLng>() {
             private double lng = extents.startlng;
             private double lat = extents.startlat;
 

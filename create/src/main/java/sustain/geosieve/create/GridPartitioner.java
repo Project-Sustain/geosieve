@@ -1,6 +1,7 @@
 package sustain.geosieve.create;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -13,7 +14,7 @@ public class GridPartitioner {
 
     public List<Extents> getPartitions(int count, double granularity) {
         if (count == 1) {
-            return List.of(totalExtents);
+            return Collections.singletonList(totalExtents);
         } else if (count == 0) {
             return Collections.emptyList();
         }
@@ -45,7 +46,7 @@ public class GridPartitioner {
         long granularitiesToMiddle = (long) Math.ceil((e.height() / 2.0) / granularity);
         double midpoint = granularity * granularitiesToMiddle;
 
-        return List.of(
+        return Arrays.asList(
                 new Extents(e.startlat, e.startlng,e.startlat + midpoint, e.endlng),
                 new Extents(e.startlat + midpoint, e.startlat, e.endlat, e.endlng)
         );
@@ -55,9 +56,8 @@ public class GridPartitioner {
         long granularitiesToMiddle = (long) Math.ceil((e.width() / 2.0) / granularity);
         double midpoint = granularity * granularitiesToMiddle;
 
-        return List.of(
+        return Arrays.asList(
                 new Extents(e.startlat, e.startlng, e.endlat, e.startlng + midpoint),
-                new Extents(e.startlat, e.startlng + midpoint, e.endlat, e.endlng)
-        );
+                new Extents(e.startlat, e.startlng + midpoint, e.endlat, e.endlng));
     }
 }

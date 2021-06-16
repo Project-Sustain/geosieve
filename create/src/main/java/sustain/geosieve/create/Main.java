@@ -1,5 +1,6 @@
 package sustain.geosieve.create;
 
+import net.sourceforge.argparse4j.inf.Namespace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,13 +11,13 @@ public class Main {
     private final static Logger logger = LoggerFactory.getLogger(Main.class);
     public static void main(String[] args) {
         logger.info("Starting...");
-        Parameters params = null;
+        Namespace params = null;
 
         try {
-            params = Parameters.parse(List.of(args));
+            params = Parameters.parse(args);
         } catch (IllegalArgumentException e) {
+            logger.error("Arguments failed to parse.");
             System.out.println(e.getLocalizedMessage());
-            usage();
             System.exit(1);
         }
 
@@ -34,7 +35,7 @@ public class Main {
         logger.info("Finished.");
     }
 
-    private static List<Iterable<LatLng>> getPoints(Extents e, Parameters params) {
+    private static List<Iterable<LatLng>> getPoints(Extents e, Namespace params) {
         int concurrency = params.getInt("concurrency");
         double granularity = params.getDouble("gridGranularity");
 
@@ -44,10 +45,6 @@ public class Main {
             points.add(new GriddedPointProvider(granularity, granularity, partitions.get(i)));
         }
         return points;
-    }
-
-    private static void usage() {
-        System.out.println("use");
     }
 
     private static void startAndJoin(List<Thread> threads) {

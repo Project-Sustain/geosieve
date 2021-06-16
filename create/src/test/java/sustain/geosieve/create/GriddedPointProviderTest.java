@@ -20,7 +20,7 @@ public class GriddedPointProviderTest {
         for (LatLng point : provider) {
             points.add(point);
         }
-        assertTrue(setsCloseEnough(points, new HashSet<>(List.of(
+        assertTrue(setsCloseEnough(points, new HashSet<>(Arrays.asList(
                 new LatLngPoint(0, 0),
                 new LatLngPoint(0.2, 0),
                 new LatLngPoint(0.4, 0),
@@ -52,7 +52,7 @@ public class GriddedPointProviderTest {
         for (LatLng point : provider) {
             points.add(point);
         }
-        assertTrue(setsCloseEnough(points, new HashSet<>(List.of(
+        assertTrue(setsCloseEnough(points, new HashSet<>(Arrays.asList(
                 // YES THIS IS NECESSARY ITS THE ONLY WAY I COULD RELIABLY REPRODUCE THIS PROBLEM
                 new LatLngPoint(0.0, 0), new LatLngPoint(0.1, 0), new LatLngPoint(0.2, 0),
                 new LatLngPoint(0.3, 0), new LatLngPoint(0.4, 0), new LatLngPoint(0.5, 0),
@@ -99,7 +99,7 @@ public class GriddedPointProviderTest {
         for (LatLng point : provider) {
             points.add(point);
         }
-        assertTrue(setsCloseEnough(points, new HashSet<>(List.of(
+        assertTrue(setsCloseEnough(points, new HashSet<>(Arrays.asList(
                 new LatLngPoint(3.141592685, 1.6),
                 new LatLngPoint(3.951592685, 1.6),
                 new LatLngPoint(4.761592685, 1.6),
@@ -145,7 +145,7 @@ public class GriddedPointProviderTest {
             } catch (InterruptedException ignored) { }
         }
 
-        assertTrue(setsCloseEnough(points, new HashSet<>(List.of(
+        assertTrue(setsCloseEnough(points, new HashSet<>(Arrays.asList(
                 new LatLngPoint(0, 0),
                 new LatLngPoint(0.2, 0),
                 new LatLngPoint(0.4, 0),

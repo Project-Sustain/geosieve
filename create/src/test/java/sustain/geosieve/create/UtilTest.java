@@ -3,6 +3,7 @@ package sustain.geosieve.create;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -10,9 +11,9 @@ import static org.junit.jupiter.api.Assertions.*;
 public class UtilTest {
     @Test
     public void simpleListConcat() {
-        List<String> list1 = List.of("Alpha", "Beta", "Gamma");
-        List<String> list2 = List.of("Delta", "Epsilon", "Zeta", "Theta");
-        List<String> expected = List.of("Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Theta");
+        List<String> list1 = Arrays.asList("Alpha", "Beta", "Gamma");
+        List<String> list2 = Arrays.asList("Delta", "Epsilon", "Zeta", "Theta");
+        List<String> expected = Arrays.asList("Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Theta");
         assertEquals(expected, Util.concat(list1, list2));
     }
 
@@ -31,9 +32,9 @@ public class UtilTest {
 
     @Test
     public void simpleMap() {
-        List<String> list1 = List.of("Alpha", "Beta", "Gamma");
+        List<String> list1 = Arrays.asList("Alpha", "Beta", "Gamma");
         List<String> mapped = Util.map(list1, String::toLowerCase);
-        List<String> expected = List.of("alpha", "beta", "gamma");
+        List<String> expected = Arrays.asList("alpha", "beta", "gamma");
         assertEquals(expected, mapped);
     }
 }
