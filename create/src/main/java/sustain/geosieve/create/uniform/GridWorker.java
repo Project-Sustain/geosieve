@@ -1,4 +1,8 @@
-package sustain.geosieve.create;
+package sustain.geosieve.create.uniform;
+
+import sustain.geosieve.create.BloomFilterSet;
+import sustain.geosieve.create.GisJoinMapper;
+import sustain.geosieve.create.LatLng;
 
 public class GridWorker implements Runnable {
     private final Iterable<LatLng> points;

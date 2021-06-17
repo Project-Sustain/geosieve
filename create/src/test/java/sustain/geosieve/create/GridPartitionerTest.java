@@ -1,8 +1,7 @@
 package sustain.geosieve.create;
 
-import sustain.geosieve.create.Extents;
-import sustain.geosieve.create.GridPartitioner;
-import sustain.geosieve.create.LatLngPoint;
+import sustain.geosieve.create.uniform.Extents;
+import sustain.geosieve.create.uniform.GridPartitioner;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

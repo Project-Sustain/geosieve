@@ -1,4 +1,4 @@
-package sustain.geosieve.create;
+package sustain.geosieve.create.uniform;
 
 import java.util.ArrayList;
 import java.util.Arrays;

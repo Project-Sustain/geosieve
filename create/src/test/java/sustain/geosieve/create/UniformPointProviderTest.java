@@ -1,6 +1,9 @@
 package sustain.geosieve.create;
 
 import org.junit.jupiter.api.Test;
+import sustain.geosieve.create.uniform.Extents;
+import sustain.geosieve.create.uniform.UniformPointProvider;
+
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 import static sustain.geosieve.create.Util.*;

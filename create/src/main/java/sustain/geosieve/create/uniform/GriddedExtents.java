@@ -1,4 +1,4 @@
-package sustain.geosieve.create;
+package sustain.geosieve.create.uniform;
 
 public class GriddedExtents extends Extents {
     public final double lngStep;

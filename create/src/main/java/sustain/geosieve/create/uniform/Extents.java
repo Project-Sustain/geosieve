@@ -1,4 +1,6 @@
-package sustain.geosieve.create;
+package sustain.geosieve.create.uniform;
+
+import sustain.geosieve.create.LatLng;
 
 public class Extents {
     public final double north;

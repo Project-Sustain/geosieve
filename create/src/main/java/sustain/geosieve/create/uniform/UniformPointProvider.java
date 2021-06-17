@@ -1,4 +1,8 @@
-package sustain.geosieve.create;
+package sustain.geosieve.create.uniform;
+
+import sustain.geosieve.create.LatLng;
+import sustain.geosieve.create.LatLngPoint;
+import sustain.geosieve.create.Util;
 
 import java.util.Iterator;
 
