@@ -166,4 +166,24 @@ public class JsonExtractorTest {
 
         assertThrows(NoSuchElementException.class, () -> e.getFromNextObject("a", "b", "c"));
     }
+
+    @Test
+    public void properlyReportsIfMoreObjectsExist() throws IOException {
+        String json = "{ \"a\": 5 }\n{ \"a\": 4 }\n{ \"a\": 3 }";
+
+        JsonExtractor e = new JsonExtractor(factory.createParser(json));
+
+        assertTrue(e.moreObjectsExist());
+        e.getFromNextObject("a");
+        assertTrue(e.moreObjectsExist());
+        e.getFromNextObject("a");
+        assertTrue(e.moreObjectsExist());
+        assertTrue(e.moreObjectsExist()); // calling multiple times should be ok
+        assertTrue(e.moreObjectsExist());
+        e.getFromNextObject("a");
+        assertFalse(e.moreObjectsExist());
+        assertFalse(e.moreObjectsExist());
+        assertFalse(e.moreObjectsExist());
+        assertThrows(NoSuchElementException.class, () -> e.getFromNextObject("a"));
+    }
 }

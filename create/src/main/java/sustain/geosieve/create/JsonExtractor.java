@@ -9,16 +9,15 @@ import java.util.*;
 // Horrible disgusting low-level class
 public class JsonExtractor {
     private final JsonParser parser;
+    private boolean needsNextObject = true;
+    private boolean atEnd = false;
 
     public JsonExtractor(JsonParser parser) {
         this.parser = parser;
     }
 
     public synchronized Map<String, Object> getFromNextObject(String... fields) {
-        boolean moreObjects = findNextObject();
-        if (!moreObjects) {
-            throw new NoSuchElementException();
-        }
+        getNextObjectIfNeeded();
 
         Map<String, Object> props = new HashMap<>();
 
@@ -31,6 +30,31 @@ public class JsonExtractor {
         }
 
         return props;
+    }
+
+    private void getNextObjectIfNeeded() {
+        if (needsNextObject) {
+            boolean moreObjects = findNextObject();
+            if (!moreObjects) {
+                throw new NoSuchElementException();
+            }
+        } else if (atEnd) {
+            throw new NoSuchElementException();
+        }
+        needsNextObject = true;
+    }
+
+    public synchronized boolean moreObjectsExist() {
+        if (needsNextObject) {
+            needsNextObject = false;
+            boolean more = findNextObject();
+            if (!more) {
+                atEnd = true;
+            }
+            return more;
+        } else {
+            return !atEnd;
+        }
     }
 
     private boolean addIfNeeded(Map<String, Object> props, String field) {
