@@ -1,5 +1,6 @@
 package sustain.geosieve.create;
 
+import javax.naming.OperationNotSupportedException;
 import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -8,13 +9,11 @@ public abstract class Datasource implements Iterable<LatLng> {
     public final String latProperty;
     public final String lngProperty;
     public final File file;
-    public final FileType type;
 
     public Datasource(String latProperty, String lngProperty, File file) {
         this.latProperty = latProperty;
         this.lngProperty = lngProperty;
         this.file = file;
-        this.type = getType(file);
     }
 
     public enum FileType {
@@ -23,6 +22,16 @@ public abstract class Datasource implements Iterable<LatLng> {
     }
 
     private static final Pattern extensionPattern = Pattern.compile("^.*\\.(\\w+)$");
+
+    public static Datasource fromFile(String latProperty, String lngProperty, File file) {
+        switch (getType(file)) {
+            case JSON: {
+                return new JsonDatasource(latProperty, lngProperty, file);
+            } default: {
+                throw new IllegalArgumentException(String.format("File type of %s is not supported", file.getName()));
+            }
+        }
+    }
 
     public static FileType getType(File file) {
         String basename = file.getName();

@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 public class JsonDatasource extends Datasource {
     private final JsonExtractor extractor;
@@ -31,6 +32,10 @@ public class JsonDatasource extends Datasource {
 
             @Override
             public LatLng next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+
                 Map<String, Object> coordinates = extractor.getFromNextObject(lngProperty, latProperty);
                 return attemptDoubleExtraction(coordinates);
             }
