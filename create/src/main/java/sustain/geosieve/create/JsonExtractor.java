@@ -14,7 +14,7 @@ public class JsonExtractor {
         this.parser = parser;
     }
 
-    public Map<String, Object> getFromNextObject(String... fields) {
+    public synchronized Map<String, Object> getFromNextObject(String... fields) {
         boolean moreObjects = findNextObject();
         if (!moreObjects) {
             throw new NoSuchElementException();
@@ -22,12 +22,10 @@ public class JsonExtractor {
 
         Map<String, Object> props = new HashMap<>();
 
-        synchronized (parser) {
-            while (advanceToNextField()) {
-                for (String field : fields) {
-                    if (addIfNeeded(props, field)) {
-                        break;
-                    }
+        while (advanceToNextField()) {
+            for (String field : fields) {
+                if (addIfNeeded(props, field)) {
+                    break;
                 }
             }
         }
@@ -72,6 +70,9 @@ public class JsonExtractor {
         try {
             while (parser.getCurrentToken() != null) {
                 JsonToken next = parser.nextToken();
+                if (next == null) {
+                    return false;
+                }
                 switch (next) {
                     case END_ARRAY:
                     case END_OBJECT: {
@@ -89,11 +90,9 @@ public class JsonExtractor {
 
     private boolean findNextObject() {
         try {
-            synchronized (parser) {
-                while (parser.currentToken() != JsonToken.START_OBJECT) {
-                    if (parser.nextToken() == null) {
-                        return false;
-                    }
+            while (parser.currentToken() != JsonToken.START_OBJECT) {
+                if (parser.nextToken() == null) {
+                    return false;
                 }
             }
             return true;

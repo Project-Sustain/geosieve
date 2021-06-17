@@ -6,8 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 public class JsonExtractorTest {
     private static JsonFactory factory;
@@ -80,5 +79,50 @@ public class JsonExtractorTest {
         assertEquals("lotus", read.get("b"));
 
         assertThrows(NoSuchElementException.class, () -> e.getFromNextObject("a", "b"));
+    }
+
+    @Test
+    public void readFromMultipleThreads() throws IOException {
+        int numThreads = 10;
+        int jsonSize = 5_000;
+
+        StringBuilder jsonTemplate = new StringBuilder();
+        Set<Object> expected = new HashSet<>();
+        Set<Object> actual = Collections.synchronizedSet(new HashSet<>());
+
+        for (int i = 1; i <= jsonSize; i++) {
+            jsonTemplate.append(String.format("{ \"a\": %d, \"b\": %d }\n", i, -i));
+            expected.add(i);
+            expected.add(-i);
+        }
+        expected = Collections.unmodifiableSet(expected);
+
+        String json = jsonTemplate.toString();
+        JsonExtractor e = new JsonExtractor(factory.createParser(json));
+
+        List<Thread> threads = new ArrayList<>(numThreads);
+        for (int i = 0; i < numThreads; i++) {
+            threads.add(new Thread(() -> {
+                try {
+                    while (true) {
+                        Map<String, Object> values = e.getFromNextObject("a", "b");
+                        actual.add(values.get("a"));
+                        actual.add(values.get("b"));
+                    }
+                } catch (NoSuchElementException ignored) { }
+            }));
+        }
+
+        for (Thread t : threads) {
+            t.start();
+        }
+
+        for (Thread t : threads) {
+            try {
+                t.join();
+            } catch (InterruptedException ignored) { }
+        }
+
+        assertEquals(expected, actual);
     }
 }
