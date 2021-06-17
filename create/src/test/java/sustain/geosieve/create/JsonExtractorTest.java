@@ -86,7 +86,7 @@ public class JsonExtractorTest {
         String json = "{ \"a\": \n";
               json += " 8.7, \t\"b\":        \"sillh\" ";
               json += " , \"c\": \n";
-              json += " false}";
+              json += " false} { \"a\": 2.3 }";
 
         JsonExtractor e = new JsonExtractor(factory.createParser(json));
 
@@ -94,6 +94,11 @@ public class JsonExtractorTest {
         assertEquals(8.7, values.get("a"));
         assertEquals("sillh", values.get("b"));
         assertEquals(false, values.get("c"));
+
+        values = e.getFromNextObject("a");
+        assertEquals(2.3, values.get("a"));
+
+        assertThrows(NoSuchElementException.class, () -> e.getFromNextObject("a", "b"));
     }
 
     @Test
