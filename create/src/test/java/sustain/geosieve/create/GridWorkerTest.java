@@ -1,6 +1,5 @@
 package sustain.geosieve.create;
 
-import sustain.geosieve.create.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -63,7 +62,7 @@ public class GridWorkerTest {
 
     @Test
     public void singleThread() {
-        Iterable<LatLng> points = new GriddedPointProvider(extents);
+        Iterable<LatLng> points = new UniformPointProvider(extents);
         Thread t = new Thread(new GridWorker(points, filters, mapper));
         t.start();
         try {
@@ -93,7 +92,7 @@ public class GridWorkerTest {
         List<Extents> parts = partitioner.getPartitions(10, 0.1);
 
         for (int i = 0; i < numThreads; i++) {
-            Iterable<LatLng> points = new GriddedPointProvider(0.1, 0.1, parts.get(i));
+            Iterable<LatLng> points = new UniformPointProvider(0.1, 0.1, parts.get(i));
             threads.add(new Thread(new GridWorker(points, filters, mapper)));
         }
 

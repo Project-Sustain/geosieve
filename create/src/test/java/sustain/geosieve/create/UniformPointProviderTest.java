@@ -1,20 +1,16 @@
 package sustain.geosieve.create;
 
-import sustain.geosieve.create.Extents;
-import sustain.geosieve.create.GriddedPointProvider;
-import sustain.geosieve.create.LatLng;
-import sustain.geosieve.create.LatLngPoint;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 import static sustain.geosieve.create.Util.*;
 
-public class GriddedPointProviderTest {
+public class UniformPointProviderTest {
     private static final Extents simple = new Extents(1, 1, 0, 0);
     private static final Extents complex = new Extents(1.6, 3.141592685, 7.4321165, 6.282);
     @Test
     public void basicPoints() {
-        GriddedPointProvider provider = new GriddedPointProvider(0.2, 0.3, simple);
+        UniformPointProvider provider = new UniformPointProvider(0.2, 0.3, simple);
 
         HashSet<LatLng> points = new HashSet<>();
         for (LatLng point : provider) {
@@ -46,7 +42,7 @@ public class GriddedPointProviderTest {
 
     @Test
     public void alignedStepPoints() {
-        GriddedPointProvider provider = new GriddedPointProvider(0.1, 0.1, simple);
+        UniformPointProvider provider = new UniformPointProvider(0.1, 0.1, simple);
 
         HashSet<LatLng> points = new HashSet<>();
         for (LatLng point : provider) {
@@ -93,7 +89,7 @@ public class GriddedPointProviderTest {
 
     @Test
     public void complicatedPoints() {
-        GriddedPointProvider provider = new GriddedPointProvider(0.81, 1.57, complex);
+        UniformPointProvider provider = new UniformPointProvider(0.81, 1.57, complex);
 
         HashSet<LatLng> points = new HashSet<>();
         for (LatLng point : provider) {
@@ -123,7 +119,7 @@ public class GriddedPointProviderTest {
     public void multipleThreadsCanConsume() {
         final int numThreads = 5;
 
-        final GriddedPointProvider provider = new GriddedPointProvider(0.2, 0.3, simple);
+        final UniformPointProvider provider = new UniformPointProvider(0.2, 0.3, simple);
         final Set<LatLng> points = Collections.synchronizedSet(new HashSet<>());
         final List<Thread> threads = new ArrayList<>(numThreads);
 

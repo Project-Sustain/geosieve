@@ -42,7 +42,7 @@ public class Main {
         List<Iterable<LatLng>> points = new ArrayList<>();
         List<Extents> partitions = new GridPartitioner(e).getPartitions(concurrency, granularity);
         for (int i = 0; i < params.getInt("concurrency"); i++) {
-            points.add(new GriddedPointProvider(granularity, granularity, partitions.get(i)));
+            points.add(new UniformPointProvider(granularity, granularity, partitions.get(i)));
         }
         return points;
     }

@@ -1,15 +1,12 @@
 package sustain.geosieve.create;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
-import net.sourceforge.argparse4j.inf.Argument;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
-import javax.xml.crypto.Data;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class Parameters {
@@ -37,6 +34,8 @@ public class Parameters {
         defaultParameters.put("gridGranularity", 0.1);
         defaultParameters.put("gridOffset", 0.0);
         defaultParameters.put("concurrency", 10);
+        defaultParameters.put("latProperty", "latitude");
+        defaultParameters.put("lngProperty", "longitude");
         defaults = Collections.unmodifiableMap(defaultParameters);
 
         parser = ArgumentParsers.newFor("Geosieve").build()
@@ -53,6 +52,10 @@ public class Parameters {
                 .setDefault(defaults.get("gridOffset")).type(double.class);
         parser.addArgument("-c", "--concurrency")
                 .setDefault(defaults.get("concurrency")).type(int.class);
+        parser.addArgument("-a", "--latProperty")
+                .setDefault(defaults.get("latProperty")).type(String.class);
+        parser.addArgument("-n", "--lngProperty")
+                .setDefault(defaults.get("lngProperty")).type(String.class);
     }
 
     public static Namespace parse(String[] args) {
@@ -61,5 +64,9 @@ public class Parameters {
         } catch (ArgumentParserException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    public static void help() {
+        parser.printHelp();
     }
 }

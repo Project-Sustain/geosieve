@@ -2,18 +2,18 @@ package sustain.geosieve.create;
 
 import java.util.Iterator;
 
-public class GriddedPointProvider implements Iterable<LatLng> {
+public class UniformPointProvider implements Iterable<LatLng> {
     private final double latStep;
     private final double lngStep;
     private final Extents extents;
 
-    public GriddedPointProvider(double lngStep, double latStep, Extents extents) {
+    public UniformPointProvider(double lngStep, double latStep, Extents extents) {
         this.latStep = latStep;
         this.lngStep = lngStep;
         this.extents = extents;
     }
 
-    public GriddedPointProvider(GriddedExtents griddedExtents) {
+    public UniformPointProvider(GriddedExtents griddedExtents) {
         this.latStep = griddedExtents.latStep;
         this.lngStep = griddedExtents.lngStep;
         this.extents = griddedExtents;
