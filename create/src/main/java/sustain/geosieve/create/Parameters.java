@@ -41,21 +41,33 @@ public class Parameters {
         parser = ArgumentParsers.newFor("Geosieve").build()
                 .description("Create and store bloom filters for fast GISJOIN lookup in gridded datasets.");
         parser.addArgument("-s", "--gridSource")
-                .setDefault(defaults.get("gridSource")).type(GridSource.class);
+                .help("How to get the points that should be added to the filter - UNIFORM to create a grid, FILE to grab them from a file")
+                .setDefault(defaults.get("gridSource"))
+                .type(GridSource.class);
         parser.addArgument("-j", "--gisjoinSource")
-                .setDefault(defaults.get("gisjoinSource")).type(GisjoinSource.class);
+                .help("How to compute the GISJOIN for each point")
+                .setDefault(defaults.get("gisjoinSource"))
+                .type(GisjoinSource.class);
         parser.addArgument("-t", "--dbType")
-                .setDefault(defaults.get("dbType")).type(DatabaseDestination.class);
+                .help("Where to store the resulting bloom filters")
+                .setDefault(defaults.get("dbType"))
+                .type(DatabaseDestination.class);
         parser.addArgument("-g", "--gridGranularity")
-                .setDefault(defaults.get("gridGranularity")).type(double.class);
-        parser.addArgument("-o", "--gridOffset")
-                .setDefault(defaults.get("gridOffset")).type(double.class);
+                .help("With UNIFORM gridSource, how far apart in decimal degrees each point will be")
+                .setDefault(defaults.get("gridGranularity"))
+                .type(double.class);
         parser.addArgument("-c", "--concurrency")
-                .setDefault(defaults.get("concurrency")).type(int.class);
+                .help("How many threads to start")
+                .setDefault(defaults.get("concurrency"))
+                .type(int.class);
         parser.addArgument("-a", "--latProperty")
-                .setDefault(defaults.get("latProperty")).type(String.class);
+                .help("With FILE gridSource, what the latitude property of each record is")
+                .setDefault(defaults.get("latProperty"))
+                .type(String.class);
         parser.addArgument("-n", "--lngProperty")
-                .setDefault(defaults.get("lngProperty")).type(String.class);
+                .help("With FILE gridSource, what the longitude property of each record is")
+                .setDefault(defaults.get("lngProperty"))
+                .type(String.class);
     }
 
     public static Namespace parse(String[] args) {

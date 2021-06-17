@@ -31,10 +31,9 @@ public class ParametersTest {
 
     @Test
     public void argumentsSetProperly() {
-        Namespace params = Parameters.parse(new String[] {"-s", "FILE", "-g", "0.5", "-c", "80", "-o", "0.7"});
+        Namespace params = Parameters.parse(new String[] {"-s", "FILE", "-g", "0.5", "-c", "80", "-a", "lat"});
         assertEquals(Parameters.GridSource.FILE, params.get("gridSource"));
         assertEquals(0.5, params.getDouble("gridGranularity"));
-        assertEquals(80, params.getInt("concurrency"));
-        assertEquals(0.7, params.getDouble("gridOffset"));
+        assertEquals("lat", params.getString("latProperty"));
     }
 }
