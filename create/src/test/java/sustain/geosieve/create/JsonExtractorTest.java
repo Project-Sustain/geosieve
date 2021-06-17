@@ -82,6 +82,21 @@ public class JsonExtractorTest {
     }
 
     @Test
+    public void readWeirdlyFormattedObjects() throws IOException {
+        String json = "{ \"a\": \n";
+              json += " 8.7, \t\"b\":        \"sillh\" ";
+              json += " , \"c\": \n";
+              json += " false}";
+
+        JsonExtractor e = new JsonExtractor(factory.createParser(json));
+
+        Map<String, Object> values = e.getFromNextObject("a", "b", "c");
+        assertEquals(8.7, values.get("a"));
+        assertEquals("sillh", values.get("b"));
+        assertEquals(false, values.get("c"));
+    }
+
+    @Test
     public void readFromMultipleThreads() throws IOException {
         int numThreads = 10;
         int jsonSize = 5_000;
@@ -124,5 +139,26 @@ public class JsonExtractorTest {
         }
 
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void handlesMissingValuesGracefully() throws IOException {
+        String json = "{ \"a\": true, \"b\": 5.5, \"c\": \"sillh\" }\n";
+              json += "{ \"c\": \"loxxe\" }";
+
+        JsonExtractor e = new JsonExtractor(factory.createParser(json));
+
+        Map<String, Object> values = e.getFromNextObject("a", "b", "c");
+        assertEquals(true, values.get("a"));
+        assertEquals(5.5, values.get("b"));
+        assertEquals("sillh", values.get("c"));
+
+        values = e.getFromNextObject("a", "b", "c");
+        assertEquals(1, values.size());
+        assertNull(values.get("a"));
+        assertNull(values.get("b"));
+        assertEquals("loxxe", values.get("c"));
+
+        assertThrows(NoSuchElementException.class, () -> e.getFromNextObject("a", "b", "c"));
     }
 }
