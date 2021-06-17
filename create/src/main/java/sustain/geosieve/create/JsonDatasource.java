@@ -1,8 +1,6 @@
 package sustain.geosieve.create;
 
 import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,9 +32,27 @@ public class JsonDatasource extends Datasource {
             @Override
             public LatLng next() {
                 Map<String, Object> coordinates = extractor.getFromNextObject(lngProperty, latProperty);
-                double lng = (double) coordinates.get(lngProperty);
-                double lat = (double) coordinates.get(latProperty);
-                return new LatLngPoint(lng, lat);
+                return attemptDoubleExtraction(coordinates);
+            }
+
+            private LatLng attemptDoubleExtraction(Map<String, Object> vals) {
+                try {
+                    double lng = (double) vals.get(lngProperty);
+                    double lat = (double) vals.get(latProperty);
+                    return new LatLngPoint(lng, lat);
+                } catch (ClassCastException e) {
+                    return attemptIntExtraction(vals);
+                }
+            }
+
+            private LatLng attemptIntExtraction(Map<String, Object> vals) {
+                try {
+                    double lng = (int) vals.get(lngProperty);
+                    double lat = (int) vals.get(latProperty);
+                    return new LatLngPoint(lng, lat);
+                } catch (ClassCastException e) {
+                    throw new RuntimeException(e);
+                }
             }
         };
     }

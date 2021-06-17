@@ -27,6 +27,7 @@ public abstract class Datasource implements Iterable<LatLng> {
     public static FileType getType(File file) {
         String basename = file.getName();
         Matcher extMatcher = extensionPattern.matcher(basename);
+        extMatcher.matches();
         String extension = extMatcher.group(1).toLowerCase();
         switch (extension) {
             case "json": {
