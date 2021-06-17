@@ -33,6 +33,8 @@ public class DatasourcePointProvider implements Iterable<LatLng> {
             }
 
             @Override
+            // In extreme circumstances, this method may return LatLngs of the form (NaN, NaN).
+            // You should handle these when iterating with this method.
             public LatLng next() {
                 if (!hasNext()) {
                     throw new NoSuchElementException();
