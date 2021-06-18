@@ -2,6 +2,7 @@ package sustain.geosieve.create;
 
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.junit.jupiter.api.Test;
+import sustain.geosieve.create.uniform.Extents;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,6 +16,7 @@ public class ParametersTest {
         assertEquals(Parameters.defaults.get("dbType"), params.get("dbType"));
         assertEquals(Parameters.defaults.get("gridGranularity"), params.get("gridGranularity"));
         assertEquals(Parameters.defaults.get("concurrency"), params.get("concurrency"));
+        assertEquals(Parameters.defaults.get("gridExtents"), params.get("gridExtents"));
     }
 
     @Test
@@ -35,5 +37,14 @@ public class ParametersTest {
         assertEquals(Parameters.GridSource.FILE, params.get("gridSource"));
         assertEquals(0.5, params.getDouble("gridGranularity"));
         assertEquals("lat", params.getString("latProperty"));
+    }
+
+    @Test
+    public void multipleArgsParseAndFailProperly() {
+        Namespace params = Parameters.parse(new String[] { "-e", "1", "1", "0", "0" });
+        assertEquals(new Extents(1, 1, 0, 0).asNESWList(), params.get("gridExtents"));
+
+        assertThrows(IllegalArgumentException.class, () -> Parameters.parse(new String[] { "-e", "1", "1", "0" }));
+        assertThrows(IllegalArgumentException.class, () -> Parameters.parse(new String[] { "-e", "1", "1", "0", "-g", "0.7" }));
     }
 }

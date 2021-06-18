@@ -2,6 +2,9 @@ package sustain.geosieve.create.uniform;
 
 import sustain.geosieve.create.LatLng;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class Extents {
     public final double north;
     public final double east;
@@ -49,6 +52,10 @@ public class Extents {
 
     public double size() {
         return width() * height();
+    }
+
+    public List<Double> asNESWList() {
+        return Arrays.asList(north, east, south, west);
     }
 
     @Override

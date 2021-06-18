@@ -4,6 +4,7 @@ import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
+import sustain.geosieve.create.uniform.Extents;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,10 +37,12 @@ public class Parameters {
         defaultParameters.put("concurrency", 10);
         defaultParameters.put("latProperty", "latitude");
         defaultParameters.put("lngProperty", "longitude");
+        defaultParameters.put("gridExtents", Extents.COLORADO.asNESWList());
         defaults = Collections.unmodifiableMap(defaultParameters);
 
         parser = ArgumentParsers.newFor("Geosieve").build()
-                .description("Create and store bloom filters for fast GISJOIN lookup in gridded datasets.");
+                .description("Create and store bloom filters for fast GISJOIN lookup in gridded datasets.")
+                .defaultHelp(true);
         parser.addArgument("-s", "--gridSource")
                 .help("How to get the points that should be added to the filter - UNIFORM to create a grid, FILE to grab them from a file")
                 .setDefault(defaults.get("gridSource"))
@@ -55,6 +58,11 @@ public class Parameters {
         parser.addArgument("-g", "--gridGranularity")
                 .help("With UNIFORM gridSource, how far apart in decimal degrees each point will be")
                 .setDefault(defaults.get("gridGranularity"))
+                .type(double.class);
+        parser.addArgument("-e", "--gridExtents")
+                .help("With UNIFORM gridSource, specify the rectangular extents of the grid (default is over Colorado)")
+                .setDefault(defaults.get("gridExtents"))
+                .nargs(4)
                 .type(double.class);
         parser.addArgument("-c", "--concurrency")
                 .help("How many threads to start")
