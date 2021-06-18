@@ -2,10 +2,10 @@ package sustain.geosieve.create;
 
 import io.rebloom.client.Client;
 
-public class RedisBloomFilterSet implements BloomFilterSet<String> {
+public class RedisFilterDatabase implements FilterDatabase {
     private final Client client;
 
-    public RedisBloomFilterSet() {
+    public RedisFilterDatabase() {
         client = new Client("localhost", 6379);
     }
 

@@ -3,10 +3,7 @@ package sustain.geosieve.create;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sustain.geosieve.create.uniform.Extents;
-import sustain.geosieve.create.uniform.GridPartitioner;
-import sustain.geosieve.create.uniform.GridWorker;
-import sustain.geosieve.create.uniform.UniformPointProvider;
+import sustain.geosieve.create.uniform.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,18 +17,18 @@ public class Main {
         try {
             params = Parameters.parse(args);
         } catch (IllegalArgumentException e) {
-            logger.error("Arguments failed to parse.");
-            System.out.println(e.getLocalizedMessage());
+            Parameters.help();
             System.exit(1);
         }
 
+        FilterDatabase filters = Factories.getFilters(params);
+        GisJoinMapper mapper = Factories.getMapper(params);
+
         List<Iterable<LatLng>> points = getPoints(Extents.COLORADO, params);
-        BloomFilterSet<String> bfs = new RedisBloomFilterSet();
-        GisJoinMapper mapper = new SustainMongoGisJoinMapper();
         List<Thread> threads = new ArrayList<>(params.getInt("concurrency"));
 
         for (int i = 0; i < params.getInt("concurrency"); i++) {
-            threads.add(new Thread(new GridWorker(points.get(i), bfs, mapper)));
+            threads.add(new Thread(new GridWorker(points.get(i), filters, mapper)));
         }
 
         logger.info("Launching {} threads.", params.getInt("concurrency"));

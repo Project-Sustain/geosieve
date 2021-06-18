@@ -10,7 +10,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class DummyFilters implements BloomFilterSet<String> {
+class DummyFilters implements FilterDatabase {
     private final HashMap<String, Set<String>> filters;
     public DummyFilters() {
         filters = new HashMap<>();

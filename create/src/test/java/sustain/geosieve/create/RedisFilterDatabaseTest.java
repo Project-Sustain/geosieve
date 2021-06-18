@@ -1,7 +1,5 @@
 package sustain.geosieve.create;
 
-import sustain.geosieve.create.BloomFilterSet;
-import sustain.geosieve.create.RedisBloomFilterSet;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -13,13 +11,13 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class RedisBloomFilterSetTest {
-    static BloomFilterSet<String> bfs;
+public class RedisFilterDatabaseTest {
+    static FilterDatabase bfs;
     static Map<String, String> addedItems;
 
     @BeforeAll
     public static void setup() {
-        bfs = new RedisBloomFilterSet();
+        bfs = new RedisFilterDatabase();
         addedItems = new HashMap<>();
     }
 
