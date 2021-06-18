@@ -39,7 +39,7 @@ public class UtilTest {
     @Test
     public void doThreadsRunsAndJoinsProperly() {
         int size = 1_000;
-        Set<Integer> numbers = new HashSet<>();
+        Set<Integer> numbers = Collections.synchronizedSet(new HashSet<>());
         Set<Integer> expected = new HashSet<>();
         for (int i = 0; i < size; i++) {
             expected.add(i);

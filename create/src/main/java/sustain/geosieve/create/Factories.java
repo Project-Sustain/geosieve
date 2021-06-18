@@ -1,6 +1,7 @@
 package sustain.geosieve.create;
 
 import net.sourceforge.argparse4j.inf.Namespace;
+import sustain.geosieve.create.datasource.FileJobLauncher;
 import sustain.geosieve.create.uniform.GridJobLauncher;
 
 public class Factories {
@@ -24,6 +25,8 @@ public class Factories {
         switch (params.<Parameters.GridSource>get("gridSource")) {
             default: case UNIFORM: {
                 return new GridJobLauncher(params);
+            } case FILE: {
+                return new FileJobLauncher(params);
             }
         }
     }

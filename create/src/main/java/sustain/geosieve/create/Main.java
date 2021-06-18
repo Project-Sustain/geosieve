@@ -21,6 +21,9 @@ public class Main {
             Parameters.help();
             System.exit(1);
         }
+
+        JobLauncher launcher = Factories.getLauncher(params);
+        launcher.launch();
     }
 }
 
