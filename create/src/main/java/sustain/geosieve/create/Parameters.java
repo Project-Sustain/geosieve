@@ -38,6 +38,7 @@ public class Parameters {
         defaultParameters.put("latProperty", "latitude");
         defaultParameters.put("lngProperty", "longitude");
         defaultParameters.put("gridExtents", Extents.COLORADO.asNESWList());
+        defaultParameters.put("files", Collections.singletonList("data.json"));
         defaults = Collections.unmodifiableMap(defaultParameters);
 
         parser = ArgumentParsers.newFor("Geosieve").build()
@@ -75,6 +76,10 @@ public class Parameters {
         parser.addArgument("-n", "--lngProperty")
                 .help("With FILE gridSource, what the longitude property of each record is")
                 .setDefault(defaults.get("lngProperty"))
+                .type(String.class);
+        parser.addArgument("-f", "--files")
+                .help("With FILE gridSource, what files to read the points from")
+                .setDefault(defaults.get("files"))
                 .type(String.class);
     }
 

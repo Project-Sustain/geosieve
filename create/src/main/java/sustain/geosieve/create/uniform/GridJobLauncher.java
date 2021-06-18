@@ -8,20 +8,15 @@ import sustain.geosieve.create.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GridJobLauncher implements JobLauncher {
+public class GridJobLauncher extends JobLauncher {
     private final static Logger logger = LoggerFactory.getLogger(GridJobLauncher.class);
 
-    private final Namespace params;
     private final Extents extents;
-    private final FilterDatabase filters;
-    private final GisJoinMapper mapper;
 
     public GridJobLauncher(Namespace params) {
-        this.params = params;
+        super(params);
         List<Double> limits = params.get("gridExtents");
         extents = new Extents(limits.get(0), limits.get(1), limits.get(2), limits.get(3));
-        filters = Factories.getFilters(params);
-        mapper = Factories.getMapper(params);
     }
 
     public void launch() {

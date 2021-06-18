@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 public class Util {
@@ -81,6 +82,20 @@ public class Util {
             threads.add(new Thread(runnableProducer.apply(input)));
         }
 
+        startAndJoin(threads);
+    }
+
+    public static void doThreads(Supplier<Runnable> runnableSupplier, int amount) {
+        List<Thread> threads = new ArrayList<>();
+
+        for (int i = 0; i < amount; i++) {
+            threads.add(new Thread(runnableSupplier.get()));
+        }
+
+        startAndJoin(threads);
+    }
+
+    public static void startAndJoin(Iterable<Thread> threads) {
         for (Thread t : threads) {
             t.start();
         }
