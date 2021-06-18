@@ -10,6 +10,7 @@ import java.util.List;
 
 public class Main {
     private final static Logger logger = LoggerFactory.getLogger(Main.class);
+
     public static void main(String[] args) {
         logger.info("Starting...");
         Namespace params = null;
@@ -20,43 +21,6 @@ public class Main {
             Parameters.help();
             System.exit(1);
         }
-
-        FilterDatabase filters = Factories.getFilters(params);
-        GisJoinMapper mapper = Factories.getMapper(params);
-
-        List<Iterable<LatLng>> points = getPoints(Extents.COLORADO, params);
-        List<Thread> threads = new ArrayList<>(params.getInt("concurrency"));
-
-        for (int i = 0; i < params.getInt("concurrency"); i++) {
-            threads.add(new Thread(new GridWorker(points.get(i), filters, mapper)));
-        }
-
-        logger.info("Launching {} threads.", params.getInt("concurrency"));
-        startAndJoin(threads);
-        logger.info("Finished.");
-    }
-
-    private static List<Iterable<LatLng>> getPoints(Extents e, Namespace params) {
-        int concurrency = params.getInt("concurrency");
-        double granularity = params.getDouble("gridGranularity");
-
-        List<Iterable<LatLng>> points = new ArrayList<>();
-        List<Extents> partitions = new GridPartitioner(e).getPartitions(concurrency, granularity);
-        for (int i = 0; i < params.getInt("concurrency"); i++) {
-            points.add(new UniformPointProvider(granularity, granularity, partitions.get(i)));
-        }
-        return points;
-    }
-
-    private static void startAndJoin(List<Thread> threads) {
-        for (Thread t : threads) {
-            t.start();
-        }
-
-        for (Thread t : threads) {
-            try {
-                t.join();
-            } catch (InterruptedException ignored) { }
-        }
     }
 }
+

@@ -18,4 +18,12 @@ public class Factories {
             }
         }
     }
+
+    public static JobLauncher getLauncher(Namespace params) {
+        switch (params.<Parameters.GridSource>get("gridSource")) {
+            default: case UNIFORM: {
+                return new GridJobLauncher(params);
+            }
+        }
+    }
 }
