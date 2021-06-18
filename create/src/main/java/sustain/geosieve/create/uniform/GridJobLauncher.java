@@ -28,7 +28,7 @@ public class GridJobLauncher implements JobLauncher {
         List<Iterable<LatLng>> points = getPoints(extents, params);
 
         logger.info("Launching {} threads.", params.getInt("concurrency"));
-        Util.doThreads((Iterable<LatLng> part) -> () -> new GridWorker(part, filters, mapper), points);
+        Util.doThreads((Iterable<LatLng> part) -> new GridWorker(part, filters, mapper), points);
         logger.info("Finished.");
     }
 
