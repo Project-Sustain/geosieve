@@ -26,14 +26,9 @@ public class GridJobLauncher implements JobLauncher {
 
     public void launch() {
         List<Iterable<LatLng>> points = getPoints(extents, params);
-        List<Thread> threads = new ArrayList<>(params.getInt("concurrency"));
-
-        for (int i = 0; i < params.getInt("concurrency"); i++) {
-            threads.add(new Thread(new GridWorker(points.get(i), filters, mapper)));
-        }
 
         logger.info("Launching {} threads.", params.getInt("concurrency"));
-        startAndJoin(threads);
+        Util.doThreads((Iterable<LatLng> part) -> () -> new GridWorker(part, filters, mapper), points);
         logger.info("Finished.");
     }
 

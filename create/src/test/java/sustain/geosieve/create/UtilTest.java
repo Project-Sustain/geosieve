@@ -2,9 +2,7 @@ package sustain.geosieve.create;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -36,5 +34,17 @@ public class UtilTest {
         List<String> mapped = Util.map(list1, String::toLowerCase);
         List<String> expected = Arrays.asList("alpha", "beta", "gamma");
         assertEquals(expected, mapped);
+    }
+
+    @Test
+    public void doThreadsRunsAndJoinsProperly() {
+        int size = 1_000;
+        Set<Integer> numbers = new HashSet<>();
+        Set<Integer> expected = new HashSet<>();
+        for (int i = 0; i < size; i++) {
+            expected.add(i);
+        }
+        Util.doThreads((Integer i) -> () -> numbers.add(i), expected);
+        assertEquals(expected, numbers);
     }
 }
