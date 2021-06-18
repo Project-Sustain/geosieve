@@ -1,4 +1,4 @@
-package sustain.geosieve.create;
+package sustain.geosieve.create.datasource;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;

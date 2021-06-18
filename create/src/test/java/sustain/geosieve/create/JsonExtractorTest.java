@@ -3,6 +3,8 @@ package sustain.geosieve.create;
 import com.fasterxml.jackson.core.JsonFactory;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import sustain.geosieve.create.datasource.JsonExtractor;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;

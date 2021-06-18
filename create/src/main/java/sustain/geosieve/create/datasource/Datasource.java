@@ -1,6 +1,7 @@
-package sustain.geosieve.create;
+package sustain.geosieve.create.datasource;
 
-import javax.naming.OperationNotSupportedException;
+import sustain.geosieve.create.LatLng;
+
 import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

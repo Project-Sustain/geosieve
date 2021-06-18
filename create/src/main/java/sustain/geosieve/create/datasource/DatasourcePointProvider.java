@@ -1,4 +1,6 @@
-package sustain.geosieve.create;
+package sustain.geosieve.create.datasource;
+
+import sustain.geosieve.create.LatLng;
 
 import java.io.File;
 import java.util.*;

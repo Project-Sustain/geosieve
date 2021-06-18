@@ -1,6 +1,8 @@
-package sustain.geosieve.create;
+package sustain.geosieve.create.datasource;
 
 import com.fasterxml.jackson.core.JsonFactory;
+import sustain.geosieve.create.LatLng;
+import sustain.geosieve.create.LatLngPoint;
 
 import java.io.File;
 import java.io.IOException;
