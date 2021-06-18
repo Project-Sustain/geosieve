@@ -1,12 +1,9 @@
-package sustain.geosieve.create;
+package sustain.geosieve.create.uniform;
 
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sustain.geosieve.create.uniform.Extents;
-import sustain.geosieve.create.uniform.GridPartitioner;
-import sustain.geosieve.create.uniform.GridWorker;
-import sustain.geosieve.create.uniform.UniformPointProvider;
+import sustain.geosieve.create.*;
 
 import java.util.ArrayList;
 import java.util.List;
