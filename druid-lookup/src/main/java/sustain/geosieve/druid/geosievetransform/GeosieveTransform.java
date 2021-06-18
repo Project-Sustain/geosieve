@@ -12,13 +12,13 @@ import java.util.List;
 
 public class GeosieveTransform implements Transform {
     private final String name;
-    private final String expression;
+    private final String target;
 
     @JsonCreator
     public GeosieveTransform(@JsonProperty("name") final String name,
-                             @JsonProperty("expression") final String expression) {
+                             @JsonProperty("target") final String target) {
         this.name = name;
-        this.expression = expression;
+        this.target = target;
     }
 
     @JsonProperty
@@ -28,20 +28,12 @@ public class GeosieveTransform implements Transform {
     }
 
     @JsonProperty
-    public String getExpression() {
-        return expression;
+    public String getTarget() {
+        return target;
     }
 
     @Override
     public RowFunction getRowFunction() {
         return new BloomLookupRowFunction();
-    }
-
-    // Obviously, this is just proof-of-concept testing at the moment...
-    static class BloomLookupRowFunction implements RowFunction {
-        @Override
-        public Object eval(final Row row) {
-            return 5;
-        }
     }
 }
