@@ -3,10 +3,19 @@ package sustain.geosieve.create;
 import io.rebloom.client.Client;
 
 public class RedisFilterDatabase implements FilterDatabase {
+    private static final int DEFAULT_REDIS_PORT = 6379;
     private final Client client;
 
     public RedisFilterDatabase() {
-        client = new Client("localhost", 6379);
+        this("localhost", DEFAULT_REDIS_PORT);
+    }
+
+    public RedisFilterDatabase(String host) {
+        this(host, DEFAULT_REDIS_PORT);
+    }
+
+    public RedisFilterDatabase(String host, int port) {
+        client = new Client(host, port);
     }
 
     @Override
