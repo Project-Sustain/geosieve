@@ -16,6 +16,7 @@ public class GridPartitionerTest {
     @BeforeAll
     public static void setup() {
         e = new Extents(1, 1, 0, 0);
+        e = Extents.COLORADO;
         parts = new GridPartitioner(e);
     }
 
@@ -69,6 +70,6 @@ public class GridPartitionerTest {
         for (Extents e : octs) {
             total += e.size();
         }
-        assertEquals(total, e.size(), 0.1);
+        assertEquals(e.size(), total, 0.1);
     }
 }

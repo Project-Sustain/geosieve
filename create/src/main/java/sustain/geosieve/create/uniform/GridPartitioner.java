@@ -48,7 +48,7 @@ public class GridPartitioner {
 
         return Arrays.asList(
                 new Extents(e.startlat, e.startlng,e.startlat + midpoint, e.endlng),
-                new Extents(e.startlat + midpoint, e.startlat, e.endlat, e.endlng)
+                new Extents(e.startlat + midpoint, e.startlng, e.endlat, e.endlng)
         );
     }
 
