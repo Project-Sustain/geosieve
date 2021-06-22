@@ -17,12 +17,7 @@ public class RedisFilterDatabaseTest {
 
     @BeforeAll
     public static void setup() {
-        boolean inCI = System.getenv("CI") != null;
-        if (inCI) {
-            bfs = new RedisFilterDatabase("redis");
-        } else {
-            bfs = new RedisFilterDatabase();
-        }
+        bfs = new RedisFilterDatabase();
         addedItems = new HashMap<>();
     }
 
