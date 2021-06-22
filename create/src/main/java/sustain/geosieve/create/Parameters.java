@@ -24,7 +24,8 @@ public class Parameters {
     }
 
     public enum DatabaseDestination {
-        REDIS
+        REDIS,
+        FILE
     }
 
     static {
@@ -39,6 +40,7 @@ public class Parameters {
         defaultParameters.put("lngProperty", "longitude");
         defaultParameters.put("gridExtents", Extents.COLORADO.asNESWList());
         defaultParameters.put("files", Collections.singletonList("data.json"));
+        defaultParameters.put("filterOutputFile", "./out.txt");
         defaults = Collections.unmodifiableMap(defaultParameters);
 
         parser = ArgumentParsers.newFor("Geosieve").build()
@@ -80,6 +82,10 @@ public class Parameters {
         parser.addArgument("-f", "--files")
                 .help("With FILE gridSource, what files to read the points from")
                 .setDefault(defaults.get("files"))
+                .type(String.class);
+        parser.addArgument("-o", "--filterOutputFile")
+                .help("With FILE dbType, what file to output serialized bloom filters into")
+                .setDefault(defaults.get("filterOutputFile"))
                 .type(String.class);
     }
 
