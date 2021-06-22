@@ -5,6 +5,10 @@ druid-lookup/copyout.sh
 **/.idea
 **/*.iml
 
+# (create) ignore testing and output files
+create/out.txt
+create/test*
+
 ###############################################################################
 # Auto-generated lines                                                        #
 # by gitignore.io                                                             #
