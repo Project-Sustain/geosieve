@@ -1,19 +1,22 @@
 package sustain.geosieve.create;
 
-import sustain.geosieve.create.GisJoinMapper;
-import sustain.geosieve.create.LatLngPoint;
-import sustain.geosieve.create.SustainMongoGisJoinMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeAll;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class SustainMongoGisJoinMapperTest {
     private static GisJoinMapper mapper;
 
     @BeforeAll
     public static void setup() {
+        assumeTrue(shouldDoTest());
         mapper = new SustainMongoGisJoinMapper();
+    }
+
+    public static boolean shouldDoTest() {
+        return System.getenv("GEOSIEVE_SUSTAIN_MONGO_AVAILABLE") != null;
     }
 
     @Test
