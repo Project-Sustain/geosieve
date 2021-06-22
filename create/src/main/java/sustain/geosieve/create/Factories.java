@@ -9,6 +9,8 @@ public class Factories {
         switch (params.<Parameters.DatabaseDestination>get(params.get("dbType"))) {
             default: case REDIS: {
                 return new RedisFilterDatabase();
+            } case FILE: {
+                return new FileDatabase(params.get("filterOutputFile"));
             }
         }
     }

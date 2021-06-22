@@ -1,6 +1,5 @@
 package sustain.geosieve.create;
 
-import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +25,7 @@ public class FileDatabase implements FilterDatabase {
     @Override
     public void add(String filterName, String e) {
         try {
-            fileWriter.write(String.format("%s : %s", filterName, e));
+            fileWriter.write(String.format("%s : %s\n", filterName, e));
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
@@ -36,9 +35,11 @@ public class FileDatabase implements FilterDatabase {
     public boolean contains(String filterName, String e) {
         // gross
         try {
+            fileWriter.flush(); // ensure no outstanding writes
+
             Scanner reader = new Scanner(new File(pathname));
             String line;
-            while ((line = nextWithPrefix(filterName, reader)) != null) {
+            while ((line = nextLineWithPrefix(filterName, reader)) != null) {
                 if (line.contains(e)) {
                     return true;
                 }
@@ -50,10 +51,11 @@ public class FileDatabase implements FilterDatabase {
         }
     }
 
-    private String nextWithPrefix(String prefix, Scanner scanner) {
-        while (scanner.hasNext()) {
-            if (scanner.next().startsWith(prefix)) {
-                return prefix;
+    private String nextLineWithPrefix(String prefix, Scanner scanner) {
+        while (scanner.hasNextLine()) {
+            String nextLine = scanner.nextLine();
+            if (nextLine.startsWith(prefix)) {
+                return nextLine;
             }
         }
         return null; // you be careful...
