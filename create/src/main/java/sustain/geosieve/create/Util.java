@@ -37,44 +37,6 @@ public class Util {
         return true;
     }
 
-    public static <E> List<E> concat(List<E> first, List<E> second) {
-        List<E> catted = new ArrayList<>(first.size() + second.size());
-        for (int i = 0; i < first.size() + second.size(); i++) {
-            catted.add((i < first.size()) ? first.get(i) : second.get(i - first.size()));
-        }
-        return catted;
-    }
-
-    public static <E> List<E> map(List<E> list, UnaryOperator<E> op) {
-        List<E> mapped = new ArrayList<>(list.size());
-        for (E e : list) {
-            mapped.add(op.apply(e));
-        }
-        return mapped;
-    }
-
-    public static boolean coercibleToDouble(String s) {
-        try {
-            Double.parseDouble(s);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
-    public static boolean coercibleToInt(String s) {
-        try {
-            Integer.parseInt(s);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
-    public static <T, U> boolean biPredicateNoop(T t, U u) {
-        return true;
-    }
-
     public static <T> void doThreads(Function<T, Runnable> runnableProducer, Iterable<T> inputs) {
         List<Thread> threads = new ArrayList<>();
 
