@@ -23,7 +23,7 @@ public class Main {
         }
 
         JobLauncher launcher = Factories.getLauncher(params);
-        launcher.launch();
+        launcher.launchAndCleanup();
     }
 }
 

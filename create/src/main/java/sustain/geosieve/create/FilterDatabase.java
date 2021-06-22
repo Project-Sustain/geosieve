@@ -6,4 +6,6 @@ public interface FilterDatabase {
     // Returns false if the filter doesn't exist.
     boolean contains(String filterName, String e);
     void clear(String filterName, String e);
+    // Implement if the subclass needs to perform a cleanup operation when done.
+    default void cleanup() { }
 }

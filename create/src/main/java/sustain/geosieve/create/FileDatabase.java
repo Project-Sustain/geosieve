@@ -65,4 +65,13 @@ public class FileDatabase implements FilterDatabase {
     public void clear(String filterName, String e) {
 
     }
+
+    @Override
+    public void cleanup() {
+        try {
+            fileWriter.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

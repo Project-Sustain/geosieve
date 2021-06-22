@@ -14,4 +14,13 @@ public abstract class JobLauncher {
     }
 
     public abstract void launch();
+
+    public void launchAndCleanup() {
+        launch();
+        cleanup();
+    }
+
+    private void cleanup() {
+        filters.cleanup();
+    }
 }
