@@ -6,7 +6,7 @@ import sustain.geosieve.create.uniform.GridJobLauncher;
 
 public class Factories {
     public static FilterDatabase getFilters(Namespace params) {
-        switch (params.<Parameters.DatabaseDestination>get(params.get("dbType"))) {
+        switch (params.<Parameters.DatabaseDestination>get("dbType")) {
             default: case REDIS: {
                 return new RedisFilterDatabase();
             } case FILE: {
@@ -16,7 +16,7 @@ public class Factories {
     }
 
     public static GisJoinMapper getMapper(Namespace params) {
-        switch (params.<Parameters.GisjoinSource>get(params.get("gisjoinSource"))) {
+        switch (params.<Parameters.GisjoinSource>get("gisjoinSource")) {
             default: case SUSTAIN_MONGO: {
                 return new SustainMongoGisJoinMapper();
             }

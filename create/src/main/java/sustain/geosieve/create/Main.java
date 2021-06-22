@@ -1,5 +1,6 @@
 package sustain.geosieve.create;
 
+import net.sourceforge.argparse4j.helper.HelpScreenException;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +19,6 @@ public class Main {
         try {
             params = Parameters.parse(args);
         } catch (IllegalArgumentException e) {
-            Parameters.help();
             System.exit(1);
         }
 
