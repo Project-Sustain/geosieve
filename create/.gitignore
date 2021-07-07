@@ -1,6 +1,5 @@
 # (create) ignore testing and output files
 out.txt
-test*
 
 ###############################################################################
 # Auto-generated lines                                                        #
