@@ -61,10 +61,17 @@
 
 package sustain.geosieve.druid.geosievetransform;
 
+import io.rebloom.client.Client;
 import org.apache.druid.data.input.Row;
 import org.apache.druid.segment.transform.RowFunction;
 
 public class BloomLookupRowFunction implements RowFunction {
+    private final Client client;
+
+    public BloomLookupRowFunction(Client redisClient) {
+        client = redisClient;
+    }
+
     public Object eval(final Row row) {
         return "new value!!";
     }

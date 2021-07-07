@@ -63,6 +63,7 @@ package sustain.geosieve.druid.geosievetransform;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.rebloom.client.Client;
 import org.apache.druid.data.input.Row;
 import org.apache.druid.guice.annotations.Json;
 import org.apache.druid.segment.transform.RowFunction;
@@ -73,13 +74,18 @@ import java.util.List;
 
 public class GeosieveTransform implements Transform {
     private final String name;
-    private final String target;
+    private final String redisHost;
+    private final String redisPort;
+    private final Client redisClient;
 
     @JsonCreator
     public GeosieveTransform(@JsonProperty("name") final String name,
-                             @JsonProperty("target") final String target) {
+                             @JsonProperty("host") final String host,
+                             @JsonProperty("port") final String port) {
         this.name = name;
-        this.target = target;
+        this.redisHost = host;
+        this.redisPort = port;
+        this.redisClient = new Client(host, Integer.parseInt(port));
     }
 
     @JsonProperty
@@ -89,12 +95,17 @@ public class GeosieveTransform implements Transform {
     }
 
     @JsonProperty
-    public String getTarget() {
-        return target;
+    public String getHost() {
+        return redisHost;
+    }
+
+    @JsonProperty
+    public String getPort() {
+        return redisPort;
     }
 
     @Override
     public RowFunction getRowFunction() {
-        return new BloomLookupRowFunction();
+        return new BloomLookupRowFunction(redisClient);
     }
 }
