@@ -139,7 +139,7 @@ public class CSVDatasource extends Datasource {
             return null;
         }
 
-        return new LatLngPoint(maybeLat.get(), maybeLng.get());
+        return new LatLngPoint(maybeLng.get(), maybeLat.get());
     }
 
     @Override
@@ -155,7 +155,7 @@ public class CSVDatasource extends Datasource {
                 return Util.continueUntilNotNull(() -> {
                     String record = scanner.nextLine();
                     return parseCSVRecord(record);
-                }, new LatLngPoint(Double.NaN, Double.NaN));
+                }, LatLngPoint.BAD_POINT);
             }
         };
     }

@@ -62,6 +62,8 @@
 package sustain.geosieve.create;
 
 public class LatLngPoint implements LatLng {
+    public static final LatLngPoint BAD_POINT = new LatLngPoint(Double.NaN, Double.NaN);
+
     private double lat;
     private double lng;
 
