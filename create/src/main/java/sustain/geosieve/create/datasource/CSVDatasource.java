@@ -59,72 +59,104 @@
  * END OF TERMS AND CONDITIONS
  */
 
-package sustain.geosieve.create;
+package sustain.geosieve.create.datasource;
 
-import org.junit.jupiter.api.Test;
+import sustain.geosieve.create.LatLng;
+import sustain.geosieve.create.LatLngPoint;
+import sustain.geosieve.create.Util;
 
-import java.util.*;
+import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Optional;
+import java.util.Scanner;
 
-import static org.junit.jupiter.api.Assertions.*;
+public class CSVDatasource extends Datasource {
+    private final Scanner scanner;
+    private final int latIndex;
+    private final int lngIndex;
 
-public class UtilTest {
-    @Test
-    public void doThreadsRunsAndJoinsProperly() {
-        int size = 1_000;
-        Set<Integer> numbers = Collections.synchronizedSet(new HashSet<>());
-        Set<Integer> expected = new HashSet<>();
-        for (int i = 0; i < size; i++) {
-            expected.add(i);
+    public CSVDatasource(String latProperty, String lngProperty, File file) {
+        super(latProperty, lngProperty, file);
+        try {
+            scanner = new Scanner(file);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        Util.doThreads((Integer i) -> () -> numbers.add(i), expected);
-        assertEquals(expected, numbers);
+
+        Util.Pair<Integer, Integer> indices = parseCSVHeader(scanner);
+        latIndex = indices.first;
+        lngIndex = indices.second;
     }
 
-    @Test
-    public void doNThreadsRunsAndJoinsProperly() {
-        int size = 1_000;
-        Set<Integer> numbers = Collections.synchronizedSet(new HashSet<>());
-        Set<Integer> expected = new HashSet<>();
+    private Util.Pair<Integer, Integer> parseCSVHeader(Scanner scanner) {
+        String header = scanner.nextLine();
+        String[] columns = header.split(",");
 
-        Random r = new Random(2270);
-        for (int i = 0; i < size; i++) {
-            expected.add(r.nextInt());
-        }
-
-        Random r2 = new Random(2270);
-        Util.doThreads(() -> () -> {
-            for (int i = 0; i < 10; i++) {
-                numbers.add(r2.nextInt());
+        int latIndex = -1;
+        int lngIndex = -1;
+        for (int i = 0; i < columns.length; i++) {
+            if (columns[i].equals(latProperty)) {
+                latIndex = i;
+            } else if (columns[i].equals(lngProperty)) {
+                lngIndex = i;
             }
-        }, size / 10);
-        assertEquals(expected, numbers);
+        }
+        checkIndices(latIndex, lngIndex);
+
+        return new Util.Pair<>(latIndex, lngIndex);
     }
 
-    @Test
-    public void tryParseReturnsCorrectOptional() {
-        Optional<Double> one = Util.tryParse("1.0");
-        assertTrue(one.isPresent());
-        assertEquals(1.0, one.get());
-
-        Optional<Double> fifty = Util.tryParse("50  ");
-        assertTrue(fifty.isPresent());
-        assertEquals(50.0, fifty.get());
-
-        Optional<Double> wrong = Util.tryParse("wrong");
-        assertFalse(wrong.isPresent());
+    private void checkIndices(int latIndex, int lngIndex) {
+        if (latIndex == -1) {
+            throw new RuntimeException(String.format("Latitude property \"%s\" not found in CSV \"%s\"!",
+                    latProperty,
+                    file.getName()
+            ));
+        } else if (lngIndex == -1) {
+            throw new RuntimeException(String.format("Longitude property \"%s\" not found in CSV \"%s\"!",
+                    lngProperty,
+                    file.getName()
+            ));
+        }
     }
 
-    @Test
-    public void canContinueUntilNonNull() {
-        List<Integer> numbers = Arrays.asList(1, 2, 3, null, 4, null, null, null, 5, null);
-        Iterator<Integer> iterator = numbers.iterator();
+    private @Nullable LatLng parseCSVRecord(String record) {
+        String[] fields = record.split(",");
 
-        assertEquals(1, Util.continueUntilNotNull(iterator::next, 0));
-        assertEquals(2, Util.continueUntilNotNull(iterator::next, 0));
-        assertEquals(3, Util.continueUntilNotNull(iterator::next, 0));
-        assertEquals(4, Util.continueUntilNotNull(iterator::next, 0));
-        assertEquals(5, Util.continueUntilNotNull(iterator::next, 0));
-        assertEquals(0, Util.continueUntilNotNull(iterator::next, 0));
-        assertEquals(0, Util.continueUntilNotNull(iterator::next, 0));
+        if (fields.length == 0) {
+            return null;
+        }
+
+        Optional<Double> maybeLat = Util.tryParse(fields[latIndex]);
+        if (!maybeLat.isPresent()) {
+            return null;
+        }
+
+        Optional<Double> maybeLng = Util.tryParse(fields[lngIndex]);
+        if (!maybeLng.isPresent()) {
+            return null;
+        }
+
+        return new LatLngPoint(maybeLat.get(), maybeLng.get());
+    }
+
+    @Override
+    public Iterator<LatLng> iterator() {
+        return new Iterator<LatLng>() {
+            @Override
+            public boolean hasNext() {
+                return scanner.hasNextLine();
+            }
+
+            @Override
+            public LatLng next() {
+                return Util.continueUntilNotNull(() -> {
+                    String record = scanner.nextLine();
+                    return parseCSVRecord(record);
+                }, new LatLngPoint(Double.NaN, Double.NaN));
+            }
+        };
     }
 }

@@ -63,15 +63,23 @@ package sustain.geosieve.create;
 
 import sustain.geosieve.create.uniform.GridWorker;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 public class Util {
+    public static class Pair<T, U> {
+        public final T first;
+        public final U second;
+
+        public Pair(T first, U second) {
+            this.first = first;
+            this.second = second;
+        }
+    }
+
     public static boolean doubleCloseEnough(double first, double second) {
         // evil fixed epsilon, sue me
         return Math.abs(first - second) < 0.0001;
@@ -130,4 +138,24 @@ public class Util {
         }
     }
 
+    public static Optional<Double> tryParse(String s) {
+        try {
+            double d = Double.parseDouble(s);
+            return Optional.of(d);
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+    }
+
+    public static <T> T continueUntilNotNull(Supplier<T> supplier, T onException) {
+        T t;
+        try {
+            do {
+                t = supplier.get();
+            } while (t == null);
+            return t;
+        } catch (Exception e) {
+            return onException;
+        }
+    }
 }
