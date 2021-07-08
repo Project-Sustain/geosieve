@@ -80,14 +80,16 @@ public class SustainMongoGisJoinMapperTest {
         return System.getenv("GEOSIEVE_SUSTAIN_MONGO_AVAILABLE") != null;
     }
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     public void basicLookupTest() {
-        assertEquals("G0800690001709", mapper.map(new LatLng(-105, 40.4)));
-        assertEquals("G0801210924200", mapper.map(new LatLng(-103.43, 40.1)));
+        assertEquals("G0800690001709", mapper.map(new LatLng(-105, 40.4)).get());
+        assertEquals("G0801210924200", mapper.map(new LatLng(-103.43, 40.1)).get());
+        assertEquals("G3500390000500", mapper.map(new LatLng(-106.29482829694082, 36.462696881674965)).get());
     }
 
     @Test
     public void lookupFailTest() {
-        assertEquals("", mapper.map(new LatLng(0, 0)));
+        assertFalse(mapper.map(new LatLng(0, 0)).isPresent());
     }
 }

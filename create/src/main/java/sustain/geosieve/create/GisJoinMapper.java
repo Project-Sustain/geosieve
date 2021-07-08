@@ -61,7 +61,9 @@
 
 package sustain.geosieve.create;
 
+import java.util.Optional;
+
 @FunctionalInterface
 public interface GisJoinMapper {
-     String map(LatLng latlng);
+     Optional<String> map(LatLng latlng);
 }

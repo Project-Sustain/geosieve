@@ -71,6 +71,8 @@ import static com.mongodb.client.model.Filters.*;
 
 import org.bson.Document;
 
+import java.util.Optional;
+
 public class SustainMongoGisJoinMapper implements GisJoinMapper {
     private final MongoClient client;
     private final MongoCollection<Document> collection;
@@ -85,14 +87,19 @@ public class SustainMongoGisJoinMapper implements GisJoinMapper {
     }
 
     @Override
-    public String map(LatLng latlng) {
+    public Optional<String> map(LatLng latlng) {
+        if (!latlng.notInfiniteOrNaN()) {
+            return Optional.empty();
+        }
+
         Point point = new Point(new Position(latlng.lng(), latlng.lat()));
         FindIterable<Document> result = collection.find(geoIntersects("geometry", point));
         Document docGisjoin = result.first();
+
         if (docGisjoin == null) {
-            return "";
+            return Optional.empty();
         } else {
-            return docGisjoin.getString("GISJOIN");
+            return Optional.of(docGisjoin.getString("GISJOIN"));
         }
     }
 }

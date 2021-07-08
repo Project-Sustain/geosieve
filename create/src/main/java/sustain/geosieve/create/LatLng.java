@@ -88,6 +88,12 @@ public class LatLng {
         return lng;
     }
 
+    public boolean notInfiniteOrNaN() {
+        boolean lngFinite = !Double.isInfinite(lng) && !Double.isNaN(lng);
+        boolean latFinite = !Double.isInfinite(lat) && !Double.isNaN(lat);
+        return latFinite && lngFinite;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

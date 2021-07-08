@@ -114,7 +114,7 @@ public class GridWorkerTest {
         filters = new DummyFilters();
         extents = new GriddedExtents(new Extents(0, 0, 1, 1), 0.1 );
         partitioner = new GridPartitioner(extents);
-        mapper = (LatLng p) -> String.format("%.2f", p.lat());
+        mapper = (LatLng p) -> Optional.of(String.format("%.2f", p.lat()));
     }
 
     @AfterEach
