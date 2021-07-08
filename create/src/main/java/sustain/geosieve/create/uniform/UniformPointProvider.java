@@ -62,7 +62,6 @@
 package sustain.geosieve.create.uniform;
 
 import sustain.geosieve.create.LatLng;
-import sustain.geosieve.create.LatLngPoint;
 import sustain.geosieve.create.Util;
 
 import java.util.Iterator;
@@ -97,7 +96,7 @@ public class UniformPointProvider implements Iterable<LatLng> {
 
             @Override
             public LatLng next() {
-                LatLng result = new LatLngPoint(lng, lat);
+                LatLng result = new LatLng(lng, lat);
                 lng += lngStep;
                 if (lng > extents.endlng || Util.doubleCloseEnough(lng, extents.endlng)) {
                     lng = extents.startlng;

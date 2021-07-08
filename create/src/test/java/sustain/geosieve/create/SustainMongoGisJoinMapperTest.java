@@ -82,12 +82,12 @@ public class SustainMongoGisJoinMapperTest {
 
     @Test
     public void basicLookupTest() {
-        assertEquals("G0800690001709", mapper.map(new LatLngPoint(-105, 40.4)));
-        assertEquals("G0801210924200", mapper.map(new LatLngPoint(-103.43, 40.1)));
+        assertEquals("G0800690001709", mapper.map(new LatLng(-105, 40.4)));
+        assertEquals("G0801210924200", mapper.map(new LatLng(-103.43, 40.1)));
     }
 
     @Test
     public void lookupFailTest() {
-        assertEquals("", mapper.map(new LatLngPoint(0, 0)));
+        assertEquals("", mapper.map(new LatLng(0, 0)));
     }
 }

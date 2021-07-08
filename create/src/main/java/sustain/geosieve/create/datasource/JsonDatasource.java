@@ -124,7 +124,6 @@ package sustain.geosieve.create.datasource;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import sustain.geosieve.create.LatLng;
-import sustain.geosieve.create.LatLngPoint;
 
 import java.io.File;
 import java.io.IOException;
@@ -201,13 +200,13 @@ public class JsonDatasource extends Datasource {
             private LatLng attemptDoubleExtraction(Map<String, Object> vals) {
                 double lng = (double) vals.get(lngProperty);
                 double lat = (double) vals.get(latProperty);
-                return new LatLngPoint(lng, lat);
+                return new LatLng(lng, lat);
             }
 
             private LatLng attemptIntExtraction(Map<String, Object> vals) {
                 double lng = (int) vals.get(lngProperty);
                 double lat = (int) vals.get(latProperty);
-                return new LatLngPoint(lng, lat);
+                return new LatLng(lng, lat);
             }
         };
     }

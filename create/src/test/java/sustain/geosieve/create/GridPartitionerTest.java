@@ -111,10 +111,10 @@ public class GridPartitionerTest {
         for (Extents e1 : octs) {
             for (Extents e2 : octs) {
                 if (e1 != e2) {
-                    boolean intersects = e2.isIn(new LatLngPoint(e1.startlng, e1.startlat)) ||
-                            e2.isIn(new LatLngPoint(e1.startlng, e1.endlat)) ||
-                            e2.isIn(new LatLngPoint(e1.endlng, e1.startlat)) ||
-                            e2.isIn(new LatLngPoint(e1.endlng, e1.endlat));
+                    boolean intersects = e2.isIn(new LatLng(e1.startlng, e1.startlat)) ||
+                            e2.isIn(new LatLng(e1.startlng, e1.endlat)) ||
+                            e2.isIn(new LatLng(e1.endlng, e1.startlat)) ||
+                            e2.isIn(new LatLng(e1.endlng, e1.endlat));
                     if (intersects) {
                         fail();
                     }

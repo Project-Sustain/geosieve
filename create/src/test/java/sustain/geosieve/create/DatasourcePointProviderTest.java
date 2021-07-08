@@ -79,17 +79,17 @@ public class DatasourcePointProviderTest {
 
 
         List<LatLng> expected = new ArrayList<LatLng>();
-        expected.add(new LatLngPoint(3, 2));
-        expected.add(new LatLngPoint(7, 3));
-        expected.add(new LatLngPoint(1, 2));
-        expected.add(new LatLngPoint(7, 6));
-        expected.add(new LatLngPoint(1, 1));
-        expected.add(new LatLngPoint(2.54, 4.11));
-        expected.add(new LatLngPoint(3.4265, 6.72));
-        expected.add(new LatLngPoint(4.1, 8.0));
-        expected.add(new LatLngPoint(100, 345));
-        expected.add(new LatLngPoint(582, 618));
-        expected.add(new LatLngPoint(403, 209));
+        expected.add(new LatLng(3, 2));
+        expected.add(new LatLng(7, 3));
+        expected.add(new LatLng(1, 2));
+        expected.add(new LatLng(7, 6));
+        expected.add(new LatLng(1, 1));
+        expected.add(new LatLng(2.54, 4.11));
+        expected.add(new LatLng(3.4265, 6.72));
+        expected.add(new LatLng(4.1, 8.0));
+        expected.add(new LatLng(100, 345));
+        expected.add(new LatLng(582, 618));
+        expected.add(new LatLng(403, 209));
 
         int i = 0;
         for (LatLng point : points) {

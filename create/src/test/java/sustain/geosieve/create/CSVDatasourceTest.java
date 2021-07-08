@@ -76,9 +76,9 @@ public class CSVDatasourceTest {
     public void readSmallExample() throws IOException {
         CSVDatasource csvd = new CSVDatasource("latitude", "longitude", new File("src/test/resources/smallExample.csv"));
         List<LatLng> expected = Arrays.asList(
-                new LatLngPoint(70, 22),
-                new LatLngPoint(74, 19),
-                new LatLngPoint(40, 33)
+                new LatLng(70, 22),
+                new LatLng(74, 19),
+                new LatLng(40, 33)
         );
 
         int i = 0;
@@ -92,8 +92,8 @@ public class CSVDatasourceTest {
         CSVDatasource csvd = new CSVDatasource("x", "y", new File("src/test/resources/missingExample.csv"));
 
         for (LatLng point : csvd) {
-            if (!point.equals(LatLngPoint.BAD_POINT)) {
-                assertEquals(new LatLngPoint(31.3, 90), point);
+            if (!point.equals(LatLng.BAD_POINT)) {
+                assertEquals(new LatLng(31.3, 90), point);
             }
         }
     }

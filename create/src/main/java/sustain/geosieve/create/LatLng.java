@@ -61,8 +61,51 @@
 
 package sustain.geosieve.create;
 
-public interface LatLng {
-    double lat();
-    double lng();
-    void set(double lat, double lng);
+public class LatLng {
+    public static final LatLng BAD_POINT = new LatLng(Double.NaN, Double.NaN);
+
+    private double lat;
+    private double lng;
+
+    public LatLng(double lng, double lat) {
+        set(lng, lat);
+    }
+
+    public LatLng() {
+        this(0, 0);
+    }
+
+    public void set(double lng, double lat) {
+        this.lat = lat;
+        this.lng = lng;
+    }
+
+    public double lat() {
+        return lat;
+    }
+
+    public double lng() {
+        return lng;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof LatLng)) return false;
+        if (lat != ((LatLng) o).lat) return false;
+        if (lng != ((LatLng) o).lng) return false;
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        long lngBits = Double.doubleToLongBits(lng);
+        long latBits = Double.doubleToLongBits(lat);
+        return (int) ((lngBits ^ latBits) & 0xFF);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%f, %f", lng, lat);
+    }
 }

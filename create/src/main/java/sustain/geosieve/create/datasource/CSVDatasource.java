@@ -62,7 +62,6 @@
 package sustain.geosieve.create.datasource;
 
 import sustain.geosieve.create.LatLng;
-import sustain.geosieve.create.LatLngPoint;
 import sustain.geosieve.create.Util;
 
 import javax.annotation.Nullable;
@@ -139,7 +138,7 @@ public class CSVDatasource extends Datasource {
             return null;
         }
 
-        return new LatLngPoint(maybeLng.get(), maybeLat.get());
+        return new LatLng(maybeLng.get(), maybeLat.get());
     }
 
     @Override
@@ -155,7 +154,7 @@ public class CSVDatasource extends Datasource {
                 return Util.continueUntilNotNull(() -> {
                     String record = scanner.nextLine();
                     return parseCSVRecord(record);
-                }, LatLngPoint.BAD_POINT);
+                }, LatLng.BAD_POINT);
             }
         };
     }
