@@ -70,6 +70,8 @@ import com.mongodb.client.model.geojson.*;
 import static com.mongodb.client.model.Filters.*;
 
 import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
@@ -81,6 +83,8 @@ public class SustainMongoGisJoinMapper implements GisJoinMapper {
     private static final String DB_NAME = "sustaindb";
     private static final String COLLECTION_NAME = "tract_geo_GISJOIN";
 
+    private static final Logger logger = LoggerFactory.getLogger(SustainMongoGisJoinMapper.class);
+
     public SustainMongoGisJoinMapper() {
         client = MongoClients.create(CONNECTION_STRING);
         collection = client.getDatabase(DB_NAME).getCollection(COLLECTION_NAME);
@@ -88,6 +92,7 @@ public class SustainMongoGisJoinMapper implements GisJoinMapper {
 
     @Override
     public Optional<String> map(LatLng latlng) {
+        logger.info(String.format("Mapping %s...", latlng));
         if (!latlng.notInfiniteOrNaN()) {
             return Optional.empty();
         }

@@ -63,6 +63,8 @@ package sustain.geosieve.create.datasource;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
@@ -72,6 +74,7 @@ public class JsonExtractor {
     private final JsonParser parser;
     private boolean needsNextObject = true;
     private boolean atEnd = false;
+    private int objectDepth = 0;
 
     public JsonExtractor(JsonParser parser) {
         this.parser = parser;
@@ -159,11 +162,14 @@ public class JsonExtractor {
                     return false;
                 }
                 switch (next) {
-                    case END_ARRAY:
                     case END_OBJECT: {
-                        return false;
+                        if (objectDepth-- == 1) {
+                            return false;
+                        }
                     } case FIELD_NAME: {
                         return true;
+                    } case START_OBJECT: {
+                        objectDepth++;
                     }
                 }
             }
@@ -180,6 +186,7 @@ public class JsonExtractor {
                     return false;
                 }
             }
+            objectDepth = 1;
             return true;
         } catch (IOException e) {
             throw new RuntimeException(e);

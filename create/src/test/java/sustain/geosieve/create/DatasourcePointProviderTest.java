@@ -96,5 +96,6 @@ public class DatasourcePointProviderTest {
             assertEquals(point, expected.get(i++));
         }
 
+        assertEquals(expected.size(), i);
     }
 }

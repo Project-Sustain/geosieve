@@ -92,7 +92,7 @@ public class DatasourcePointProvider implements Iterable<LatLng> {
 
             @Override
             public boolean hasNext() {
-                return currentSourceIndex < files.size() && currentIterator.hasNext();
+                return currentSourceIndex < files.size() - 1 || currentIterator.hasNext();
             }
 
             @Override
