@@ -5,6 +5,7 @@ import netCDF4 as nc
 import os
 import pandas as pd
 import numpy as np
+import cProfile
 
 def main():
     args = parse_args()
@@ -15,6 +16,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Convert netCDF files to CSV format.")
     parser.add_argument("files", nargs="+")
     parser.add_argument("--timeDimension", "-t", default="time")
+    parser.add_argument("--latDimension", "-a", default="lat")
+    parser.add_argument("--lngDimension", "-n", default="lon")
     return parser.parse_args()
 
 def nc_to_csv(nc_path, args):
@@ -27,16 +30,17 @@ def nc_path_to_csv_path(nc_path):
     return os.path.basename(csv_path)
 
 def write_nc_file(nc_file, csv_path, args):
-    nc_var = nc_file.variables[guess_primary_var(nc_file)]
+    nc_var = nc_file.variables[guess_primary_var(nc_file, args)]
 
-    if not args.timeDimension in nc_var.dimensions:
-        raise Exception("Time dimension '{}' did not exist in variable '{}'", args.timeDimension, args.primaryVar)
+    check_dimensions(nc_var, args)
 
-    time_dim, lat_dim, lng_dim = nc_var.get_dims()
-    time_var = nc_file.variables[time_dim.name]
+    write_with_pandas(nc_var, nc_file, csv_path, args)
+
+def write_with_pandas(nc_var, nc_file, csv_path, args):
+    time_var = nc_file.variables[args.timeDimension]
     times = nc.num2date(time_var[:], time_var.units)
-    lats = nc_file.variables[lat_dim.name][:]
-    lngs = nc_file.variables[lng_dim.name][:]
+    lats = nc_file.variables[args.latDimension][:]
+    lngs = nc_file.variables[args.lngDimension][:]
 
     time_grid, lat_grid, lng_grid = [
         x.flatten() for x in np.meshgrid(times, lats, lngs, indexing="ij")]
@@ -48,22 +52,27 @@ def write_nc_file(nc_file, csv_path, args):
         nc_var.long_name: nc_var[:].flatten()
     })
 
-    df.to_csv(cs_path)
+    df.to_csv(csv_path)
 
-def guess_primary_var(nc_file):
-    common_vars = [
-        'lon', 'long', 'longitude', 'lng',
-        'lat', 'lati', 'latitude',
-        'time', 'timestamp',
-        'crs'
-    ]
-    
+def check_dimensions(nc_var, args):
+    missing_dimensions = {
+        'timeDimension': not args.timeDimension in nc_var.dimensions,
+        'latDimension': not args.latDimension in nc_var.dimensions,
+        'lngDimension': not args.lngDimension in nc_var.dimensions,
+    }
+
+    for dim in missing_dimensions.keys():
+        if missing_dimensions[dim]:
+            raise Exception("{} '{}' did not exist in variable {}!".format(dim, vars(args)[dim], nc_var.name))
+
+def guess_primary_var(nc_file, args):
+    common_vars = [args.timeDimension, args.latDimension, args.lngDimension, 'crs']
     nc_vars = list(filter(lambda var: not var.lower() in common_vars, nc_file.variables))
     if len(nc_vars) == 0:
-        raise Exception("Unable to find a primary variable.")
+        raise Exception("Unable to find a variable other than {}.".format(common_vars))
     else:
         return nc_vars[0]
 
 if __name__ == "__main__":
-    main()
+    cProfile.run('main()')
     
