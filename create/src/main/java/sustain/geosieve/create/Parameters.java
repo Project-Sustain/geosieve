@@ -69,6 +69,7 @@ import sustain.geosieve.create.uniform.Extents;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Parameters {
@@ -143,7 +144,7 @@ public class Parameters {
         parser.addArgument("-f", "--files")
                 .help("With FILE gridSource, what files to read the points from")
                 .setDefault(defaults.get("files"))
-                .type(String.class);
+                .nargs("+");
         parser.addArgument("-o", "--filterOutputFile")
                 .help("With FILE dbType, what file to output serialized bloom filters into")
                 .setDefault(defaults.get("filterOutputFile"))
