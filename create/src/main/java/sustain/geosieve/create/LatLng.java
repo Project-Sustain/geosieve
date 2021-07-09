@@ -118,6 +118,10 @@ public class LatLng {
 
     @Override
     public String toString() {
-        return String.format("%f, %f", lng, lat);
+        return String.format("%f,%f", lng, lat);
+    }
+
+    public String toString(int precision) {
+        return String.format(String.format("%%.%df,%%.%1$df", precision), lng, lat);
     }
 }

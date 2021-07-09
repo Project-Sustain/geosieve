@@ -68,10 +68,19 @@
 package sustain.geosieve.create;
 
 import io.rebloom.client.Client;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 
-public class RedisFilterDatabase implements FilterDatabase {
+import java.util.HashMap;
+import java.util.Map;
+
+public class RedisFilterDatabase implements GeosieveDatabase {
     private static final int DEFAULT_REDIS_PORT = 6379;
-    private final Client client;
+    private static Map<String, JedisPool> pools = new HashMap<>();
+
+    private final Jedis jedisClient;
+    private final Client bloomClient;
 
     public RedisFilterDatabase() {
         this("localhost", DEFAULT_REDIS_PORT);
@@ -82,21 +91,40 @@ public class RedisFilterDatabase implements FilterDatabase {
     }
 
     public RedisFilterDatabase(String host, int port) {
-        client = new Client(host, port);
+        if (!pools.containsKey(host)) {
+            JedisPoolConfig conf = new JedisPoolConfig();
+            pools.put(host, new JedisPool(conf, host));
+        }
+        JedisPool pool = pools.get(host);
+
+        jedisClient = pools.get(host).getResource();
+        bloomClient = new Client(pool);
     }
 
     @Override
-    public synchronized void add(String filterName, String e) {
-        client.cfAdd(filterName, e);
+    public synchronized void add(LatLng point, String gisJoin) {
+        /*
+        jedisClient.sadd(point.toString())
+        bloomClient.cfAdd(gisJoin, point.toString());
+         */
     }
 
     @Override
-    public synchronized boolean contains(String filterName, String e) {
-        return client.cfExists(filterName, e);
+    public synchronized boolean contains(LatLng point, String gisJoin) {
+//        return bloomClient.cfExists(filterName, e);
+        return false;
     }
 
     @Override
-    public synchronized void clear(String filterName, String e) {
-        client.cfDel(filterName, e);
+    public synchronized void clear(LatLng point, String gisJoin) {
+//        bloomClient.cfDel(filterName, e);
+    }
+
+    @Override
+    public synchronized void cleanup() {
+        if (jedisClient != null) {
+            jedisClient.close();
+            bloomClient.close();
+        }
     }
 }

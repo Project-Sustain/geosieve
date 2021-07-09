@@ -87,12 +87,7 @@ public class FactoriesTest {
     @Test
     public void getFilterDatabases() {
         params.put("dbType", Parameters.DatabaseDestination.REDIS);
-        FilterDatabase db = Factories.getFilters(new Namespace(params));
+        GeosieveDatabase db = Factories.getFilters(new Namespace(params));
         assertTrue(db instanceof RedisFilterDatabase);
-
-        params.put("dbType", Parameters.DatabaseDestination.FILE);
-        params.put("filterOutputFile", "./test.txt");
-        db = Factories.getFilters(new Namespace(params));
-        assertTrue(db instanceof FileDatabase);
     }
 }

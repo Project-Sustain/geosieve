@@ -71,7 +71,7 @@ import net.sourceforge.argparse4j.inf.Namespace;
 
 public abstract class JobLauncher {
     protected final Namespace params;
-    protected final FilterDatabase filters;
+    protected final GeosieveDatabase filters;
     protected final GisJoinMapper mapper;
 
     public JobLauncher(Namespace params) {

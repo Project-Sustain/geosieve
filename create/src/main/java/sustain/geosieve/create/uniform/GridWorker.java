@@ -67,7 +67,7 @@
 
 package sustain.geosieve.create.uniform;
 
-import sustain.geosieve.create.FilterDatabase;
+import sustain.geosieve.create.GeosieveDatabase;
 import sustain.geosieve.create.GisJoinMapper;
 import sustain.geosieve.create.LatLng;
 
@@ -75,10 +75,10 @@ import java.util.Optional;
 
 public class GridWorker implements Runnable {
     private final Iterable<LatLng> points;
-    private final FilterDatabase filters;
+    private final GeosieveDatabase filters;
     private final GisJoinMapper mapper;
 
-    public GridWorker(Iterable<LatLng> points, FilterDatabase filters, GisJoinMapper mapper) {
+    public GridWorker(Iterable<LatLng> points, GeosieveDatabase filters, GisJoinMapper mapper) {
         this.points = points;
         this.filters = filters;
         this.mapper = mapper;
@@ -88,7 +88,7 @@ public class GridWorker implements Runnable {
     public void run() {
         for (LatLng point : points) {
             Optional<String> maybeGisJoin = mapper.map(point);
-            maybeGisJoin.ifPresent(s -> filters.add(s, String.format("%.2f,%.2f", point.lng(), point.lat())));
+            maybeGisJoin.ifPresent(gisJoin -> filters.add(point, gisJoin));
         }
     }
 }

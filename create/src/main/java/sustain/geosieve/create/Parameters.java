@@ -92,7 +92,6 @@ public class Parameters {
 
     public enum DatabaseDestination {
         REDIS,
-        FILE
     }
 
     static {

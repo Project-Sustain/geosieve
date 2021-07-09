@@ -72,12 +72,10 @@ import sustain.geosieve.create.datasource.FileJobLauncher;
 import sustain.geosieve.create.uniform.GridJobLauncher;
 
 public class Factories {
-    public static FilterDatabase getFilters(Namespace params) {
+    public static GeosieveDatabase getFilters(Namespace params) {
         switch (params.<Parameters.DatabaseDestination>get("dbType")) {
             default: case REDIS: {
                 return new RedisFilterDatabase();
-            } case FILE: {
-                return new FileDatabase(params.get("filterOutputFile"));
             }
         }
     }
