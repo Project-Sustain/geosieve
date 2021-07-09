@@ -80,14 +80,20 @@ import java.util.List;
 
 public class GeosieveTransform implements Transform {
     private final String name;
+    private final String latProperty;
+    private final String lngProperty;
     private final String redisHost;
     private final int redisPort;
 
     @JsonCreator
     public GeosieveTransform(@JsonProperty("name") final String name,
+                             @JsonProperty("latProperty") final String latProperty,
+                             @JsonProperty("lngProperty") final String lngProperty,
                              @JsonProperty("host") final String host,
                              @JsonProperty("port") final int port) {
         this.name = name;
+        this.latProperty = latProperty;
+        this.lngProperty = lngProperty;
         this.redisHost = host;
         this.redisPort = port;
     }
@@ -111,6 +117,6 @@ public class GeosieveTransform implements Transform {
     @Override
     public RowFunction getRowFunction() {
         Client redisClient = new Client(redisHost, redisPort);
-        return new BloomLookupRowFunction(redisClient);
+        return new BloomLookupRowFunction(redisClient, latProperty, lngProperty);
     }
 }

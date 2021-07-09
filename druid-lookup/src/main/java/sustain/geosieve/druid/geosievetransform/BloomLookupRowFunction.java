@@ -73,9 +73,13 @@ import org.apache.druid.segment.transform.RowFunction;
 
 public class BloomLookupRowFunction implements RowFunction {
     private final Client client;
+    private final String lngProperty;
+    private final String latProperty;
 
-    public BloomLookupRowFunction(Client redisClient) {
+    public BloomLookupRowFunction(Client redisClient, String latProperty, String lngProperty) {
         client = redisClient;
+        this.latProperty = latProperty;
+        this.lngProperty = lngProperty;
     }
 
     public Object eval(final Row row) {
