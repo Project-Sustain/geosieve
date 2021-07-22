@@ -68,6 +68,7 @@
 package sustain.geosieve.create;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.helper.HelpScreenException;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
@@ -158,6 +159,9 @@ public class Parameters {
     public static Namespace parse(String[] args) {
         try {
             return parser.parseArgs(args);
+        } catch (HelpScreenException e) {
+            System.exit(0);
+            return null;
         } catch (ArgumentParserException e) {
             throw new IllegalArgumentException(e);
         }

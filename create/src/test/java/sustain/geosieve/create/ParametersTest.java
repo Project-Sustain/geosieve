@@ -111,6 +111,9 @@ public class ParametersTest {
         Namespace params = Parameters.parse(new String[] { "-e", "1", "1", "0", "0" });
         assertEquals(new Extents(1, 1, 0, 0).asNESWList(), params.get("gridExtents"));
 
+        params = Parameters.parse(new String[] { "-e", "41.3", " -66.9", "24.4", " -124.8" });
+        assertEquals(new Extents(41.3, -66.9, 24.4, -124.8).asNESWList(), params.get("gridExtents"));
+
         assertThrows(IllegalArgumentException.class, () -> Parameters.parse(new String[] { "-e", "1", "1", "0" }));
         assertThrows(IllegalArgumentException.class, () -> Parameters.parse(new String[] { "-e", "1", "1", "0", "-g", "0.7" }));
     }

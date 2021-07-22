@@ -117,6 +117,5 @@ public class RedisFilterDatabaseTest {
         // can only really assert falses with bloom filters...
         assertFalse(cfClient.cfExists("1.1,2.1", "G4"));
         assertFalse(cfClient.cfExists("1.1,2.1", "G3"));
-
     }
 }

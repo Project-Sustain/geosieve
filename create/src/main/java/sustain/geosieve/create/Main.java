@@ -67,6 +67,7 @@
 
 package sustain.geosieve.create;
 
+import net.sourceforge.argparse4j.helper.HelpScreenException;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,15 +76,17 @@ public class Main {
     private final static Logger logger = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
-        logger.info("Starting...");
         Namespace params = null;
 
         try {
             params = Parameters.parse(args);
         } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
+            Parameters.help();
             System.exit(1);
         }
 
+        logger.info("Starting...");
         JobLauncher launcher = Factories.getLauncher(params);
         launcher.launchAndCleanup();
     }
