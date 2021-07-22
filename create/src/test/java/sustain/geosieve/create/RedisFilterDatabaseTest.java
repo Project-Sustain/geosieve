@@ -68,60 +68,55 @@
 package sustain.geosieve.create;
 
 import io.rebloom.client.Client;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
-import java.util.HashMap;
-import java.util.Map;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class RedisFilterDatabase implements GeosieveDatabase {
-    private static final int DEFAULT_REDIS_PORT = 6379;
-    private static final Map<String, JedisPool> pools = new HashMap<>();
+public class RedisFilterDatabaseTest {
+    private static GeosieveDatabase db;
 
-    private final Jedis jedisClient;
-    private final Client bloomClient;
-
-    public RedisFilterDatabase() {
-        this("localhost", DEFAULT_REDIS_PORT);
+    @BeforeAll
+    private static void setupDatabase() {
+        db = new RedisFilterDatabase();
+        db.add(new LatLng(1.1234, 2.1234), "G1");
+        db.add(new LatLng(1.1234, 3.1234), "G2");
+        db.add(new LatLng(2.1234, 3.1234), "G3");
     }
 
-    public RedisFilterDatabase(String host) {
-        this(host, DEFAULT_REDIS_PORT);
+    @AfterAll
+    private static void destroyDatabase() {
+        db.cleanup();
     }
 
-    public RedisFilterDatabase(String host, int port) {
-        if (!pools.containsKey(host)) {
-            JedisPoolConfig conf = new JedisPoolConfig();
-            pools.put(host, new JedisPool(conf, host));
-        }
-        JedisPool pool = pools.get(host);
-
-        jedisClient = pools.get(host).getResource();
-        bloomClient = new Client(pool);
+    @Test
+    public void canReadSimplePoints() {
+        assertTrue(db.contains(new LatLng(1.1234, 2.1234), "G1"));
+        assertTrue(db.contains(new LatLng(1.1234, 3.1234), "G2"));
+        assertTrue(db.contains(new LatLng(2.1234, 3.1234), "G3"));
     }
 
-    @Override
-    public synchronized void add(LatLng point, String gisJoin) {
-        jedisClient.sadd(point.toString(1), gisJoin);
-        bloomClient.cfAdd(gisJoin, point.toString());
-    }
+    @Test
+    public void pointsAndGisjoinsInterpretedCorrectly() {
+        JedisPool pool = new JedisPool(new JedisPoolConfig(), "localhost");
+        Jedis jclient = pool.getResource();
+        Client cfClient = new Client(pool);
 
-    @Override
-    public synchronized boolean contains(LatLng point, String gisJoin) {
-        return bloomClient.cfExists(gisJoin, point.toString());
-    }
+        assertTrue(jclient.exists("G1"));
+        assertTrue(jclient.exists("G2"));
+        assertTrue(jclient.exists("G3"));
+        assertTrue(jclient.exists("1.1,2.1"));
+        assertTrue(jclient.exists("1.1,3.1"));
+        assertTrue(jclient.exists("2.1,3.1"));
 
-    @Override
-    public synchronized void clear(LatLng point, String gisJoin) {
-        bloomClient.cfDel(gisJoin, point.toString());
-    }
+        // can only really assert falses with bloom filters...
+        assertFalse(cfClient.cfExists("1.1,2.1", "G4"));
+        assertFalse(cfClient.cfExists("1.1,2.1", "G3"));
 
-    @Override
-    public synchronized void cleanup() {
-        if (jedisClient != null) {
-            jedisClient.close();
-            bloomClient.close();
-        }
     }
 }
