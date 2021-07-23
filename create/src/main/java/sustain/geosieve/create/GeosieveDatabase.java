@@ -67,9 +67,15 @@
 
 package sustain.geosieve.create;
 
+import java.util.function.Function;
+
 public interface GeosieveDatabase {
     void add(LatLng point, String gisJoin);
     boolean contains(LatLng point, String gisJoin);
     void clear(LatLng point, String gisJoin);
+
+    void formatSetNameWith(Function<LatLng, String> rule);
+    void formatFilterEntryWith(Function<LatLng, String> rule);
+
     default void cleanup() { }
 }

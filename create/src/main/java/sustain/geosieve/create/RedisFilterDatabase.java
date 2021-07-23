@@ -74,6 +74,7 @@ import redis.clients.jedis.JedisPoolConfig;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 public class RedisFilterDatabase implements GeosieveDatabase {
     private static final int DEFAULT_REDIS_PORT = 6379;
@@ -81,6 +82,8 @@ public class RedisFilterDatabase implements GeosieveDatabase {
 
     private final Jedis jedisClient;
     private final Client bloomClient;
+    private Function<LatLng, String> setNameFormatRule;
+    private Function<LatLng, String> filterEntryFormatRule;
 
     public RedisFilterDatabase() {
         this("localhost", DEFAULT_REDIS_PORT);
@@ -99,22 +102,35 @@ public class RedisFilterDatabase implements GeosieveDatabase {
 
         jedisClient = pools.get(host).getResource();
         bloomClient = new Client(pool);
+
+        setNameFormatRule = point -> point.toString(1);
+        filterEntryFormatRule = LatLng::toString;
     }
 
     @Override
     public synchronized void add(LatLng point, String gisJoin) {
-        jedisClient.sadd(point.toString(1), gisJoin);
-        bloomClient.cfAdd(gisJoin, point.toString());
+        jedisClient.sadd(setNameFormatRule.apply(point), gisJoin);
+        bloomClient.cfAdd(gisJoin, filterEntryFormatRule.apply(point));
     }
 
     @Override
     public synchronized boolean contains(LatLng point, String gisJoin) {
-        return bloomClient.cfExists(gisJoin, point.toString());
+        return bloomClient.cfExists(gisJoin, filterEntryFormatRule.apply(point));
     }
 
     @Override
     public synchronized void clear(LatLng point, String gisJoin) {
-        bloomClient.cfDel(gisJoin, point.toString());
+        bloomClient.cfDel(gisJoin, filterEntryFormatRule.apply(point));
+    }
+
+    @Override
+    public void formatSetNameWith(Function<LatLng, String> rule) {
+        setNameFormatRule = rule;
+    }
+
+    @Override
+    public void formatFilterEntryWith(Function<LatLng, String> rule) {
+        filterEntryFormatRule = rule;
     }
 
     @Override

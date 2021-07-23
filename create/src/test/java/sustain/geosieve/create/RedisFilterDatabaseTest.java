@@ -118,4 +118,21 @@ public class RedisFilterDatabaseTest {
         assertFalse(cfClient.cfExists("1.1,2.1", "G4"));
         assertFalse(cfClient.cfExists("1.1,2.1", "G3"));
     }
+
+    @Test
+    public void canUseFormattingRules() {
+        db.formatSetNameWith(point -> "something");
+        db.formatFilterEntryWith(point -> point.toString(1));
+
+        db.add(new LatLng(0.12345, 0.12345), "G4");
+
+        JedisPool pool = new JedisPool(new JedisPoolConfig(), "localhost");
+        Jedis jclient = pool.getResource();
+        Client cfClient = new Client(pool);
+
+        assertTrue(jclient.exists("something"));
+        assertTrue(jclient.exists("G4"));
+
+        assertFalse(cfClient.cfExists("G4", "0.12345,0.12345"));
+    }
 }
