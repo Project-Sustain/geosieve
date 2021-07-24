@@ -128,7 +128,7 @@ public class Parameters {
         parser.addArgument("-g", "--gridPrecision")
                 .help("With UNIFORM gridSource, how many decimal points of precision the points should have")
                 .setDefault(defaults.get("gridPrecision"))
-                .type(double.class);
+                .type(int.class);
         parser.addArgument("-e", "--gridExtents")
                 .help("With UNIFORM gridSource, specify the rectangular extents of the grid (default is over Colorado)")
                 .setDefault(defaults.get("gridExtents"))
