@@ -97,7 +97,7 @@ public class GridJobLauncher extends JobLauncher {
 
     private List<Iterable<LatLng>> getPoints(Extents e, Namespace params) {
         int concurrency = params.getInt("concurrency");
-        double granularity = params.getDouble("gridGranularity");
+        double granularity = 1.0 / Math.pow(10, (params.getInt("gridPrecision")));
 
         List<Iterable<LatLng>> points = new ArrayList<>();
         List<Extents> partitions = new GridPartitioner(e).getPartitions(concurrency, granularity);
