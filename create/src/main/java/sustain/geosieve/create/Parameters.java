@@ -100,7 +100,7 @@ public class Parameters {
         defaultParameters.put("gridSource", GridSource.UNIFORM);
         defaultParameters.put("gisjoinSource", GisjoinSource.SUSTAIN_MONGO);
         defaultParameters.put("dbType", DatabaseDestination.REDIS);
-        defaultParameters.put("gridGranularity", 0.1);
+        defaultParameters.put("gridPrecision", 1);
         defaultParameters.put("gridOffset", 0.0);
         defaultParameters.put("concurrency", 10);
         defaultParameters.put("latProperty", "latitude");
@@ -125,9 +125,9 @@ public class Parameters {
                 .help("Where to store the resulting bloom filters")
                 .setDefault(defaults.get("dbType"))
                 .type(DatabaseDestination.class);
-        parser.addArgument("-g", "--gridGranularity")
-                .help("With UNIFORM gridSource, how far apart in decimal degrees each point will be")
-                .setDefault(defaults.get("gridGranularity"))
+        parser.addArgument("-g", "--gridPrecision")
+                .help("With UNIFORM gridSource, how many decimal points of precision the points should have")
+                .setDefault(defaults.get("gridPrecision"))
                 .type(double.class);
         parser.addArgument("-e", "--gridExtents")
                 .help("With UNIFORM gridSource, specify the rectangular extents of the grid (default is over Colorado)")

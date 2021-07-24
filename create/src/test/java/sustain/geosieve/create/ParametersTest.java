@@ -81,7 +81,6 @@ public class ParametersTest {
         assertEquals(Parameters.defaults.get("gridSource"), params.get("gridSource"));
         assertEquals(Parameters.defaults.get("gisjoinSource"), params.get("gisjoinSource"));
         assertEquals(Parameters.defaults.get("dbType"), params.get("dbType"));
-        assertEquals(Parameters.defaults.get("gridGranularity"), params.get("gridGranularity"));
         assertEquals(Parameters.defaults.get("concurrency"), params.get("concurrency"));
         assertEquals(Parameters.defaults.get("gridExtents"), params.get("gridExtents"));
     }
@@ -100,9 +99,9 @@ public class ParametersTest {
 
     @Test
     public void argumentsSetProperly() {
-        Namespace params = Parameters.parse(new String[] {"-s", "FILE", "-g", "0.5", "-c", "80", "-a", "lat"});
+        Namespace params = Parameters.parse(new String[] {"-s", "FILE", "-g", "2", "-c", "80", "-a", "lat"});
         assertEquals(Parameters.GridSource.FILE, params.get("gridSource"));
-        assertEquals(0.5, params.getDouble("gridGranularity"));
+        assertEquals(2, params.getDouble("gridPrecision"));
         assertEquals("lat", params.getString("latProperty"));
     }
 

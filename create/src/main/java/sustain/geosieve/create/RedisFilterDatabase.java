@@ -77,8 +77,14 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class RedisFilterDatabase implements GeosieveDatabase {
-    private static final int DEFAULT_REDIS_PORT = 6379;
+    public static final int DEFAULT_REDIS_PORT = 6379;
+    public static final Map<PrecisionContext, String> precisionKeys = new HashMap<>();
     private static final Map<String, JedisPool> pools = new HashMap<>();
+
+    static {
+        precisionKeys.put(PrecisionContext.SET_NAME, "__snprecision");
+        precisionKeys.put(PrecisionContext.FILTER_ENTRY, "__feprecision");
+    }
 
     private final Jedis jedisClient;
     private final Client bloomClient;
@@ -103,8 +109,8 @@ public class RedisFilterDatabase implements GeosieveDatabase {
         jedisClient = pools.get(host).getResource();
         bloomClient = new Client(pool);
 
-        setNameFormatRule = point -> point.toString(1);
-        filterEntryFormatRule = LatLng::toString;
+        usePrecision(PrecisionContext.SET_NAME, 1);
+        usePrecision(PrecisionContext.FILTER_ENTRY, 0);
     }
 
     @Override
@@ -123,14 +129,20 @@ public class RedisFilterDatabase implements GeosieveDatabase {
         bloomClient.cfDel(gisJoin, filterEntryFormatRule.apply(point));
     }
 
-    @Override
-    public void formatSetNameWith(Function<LatLng, String> rule) {
-        setNameFormatRule = rule;
-    }
+    public void usePrecision(PrecisionContext type, int precision) {
+        Function<LatLng, String> newRule;
+        if (precision > 0) {
+            newRule = point -> point.toString(precision);
+        } else {
+            newRule = LatLng::toString;
+        }
 
-    @Override
-    public void formatFilterEntryWith(Function<LatLng, String> rule) {
-        filterEntryFormatRule = rule;
+        switch (type) {
+            case SET_NAME: setNameFormatRule = newRule; break;
+            case FILTER_ENTRY: filterEntryFormatRule = newRule; break;
+        }
+
+        jedisClient.set(precisionKeys.get(type), Integer.toString(precision));
     }
 
     @Override

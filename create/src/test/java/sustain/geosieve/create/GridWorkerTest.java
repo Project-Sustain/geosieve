@@ -73,7 +73,6 @@ import org.junit.jupiter.api.Test;
 import sustain.geosieve.create.uniform.*;
 
 import java.util.*;
-import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -106,12 +105,7 @@ class DummyFilters implements GeosieveDatabase {
     }
 
     @Override
-    public void formatSetNameWith(Function<LatLng, String> rule) {
-
-    }
-
-    @Override
-    public void formatFilterEntryWith(Function<LatLng, String> rule) {
+    public void usePrecision(PrecisionContext type, int precision) {
 
     }
 

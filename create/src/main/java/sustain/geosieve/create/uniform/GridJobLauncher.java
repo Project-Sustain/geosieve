@@ -84,6 +84,7 @@ public class GridJobLauncher extends JobLauncher {
         super(params);
         List<Double> limits = params.get("gridExtents");
         extents = new Extents(limits.get(0), limits.get(1), limits.get(2), limits.get(3));
+        filters.usePrecision(GeosieveDatabase.PrecisionContext.FILTER_ENTRY, params.get("gridPrecision"));
     }
 
     public void launch() {

@@ -75,23 +75,39 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RedisFilterDatabaseTest {
-    private static GeosieveDatabase db;
+    private static RedisFilterDatabase db;
+    private static JedisPool jPool;
+
+    private static class Clients {
+        public Jedis jClient;
+        public Client cfClient;
+    }
 
     @BeforeAll
-    private static void setupDatabase() {
+    private static void setup() {
         db = new RedisFilterDatabase();
         db.add(new LatLng(1.1234, 2.1234), "G1");
         db.add(new LatLng(1.1234, 3.1234), "G2");
         db.add(new LatLng(2.1234, 3.1234), "G3");
+
+        jPool = new JedisPool(new JedisPoolConfig(), "localhost");
     }
 
     @AfterAll
-    private static void destroyDatabase() {
+    private static void destroy() {
         db.cleanup();
+        jPool.close();
+    }
+
+    private static Clients getClients() {
+        Clients clients = new Clients();
+        clients.jClient = jPool.getResource();
+        clients.cfClient = new Client(jPool);
+
+        return clients;
     }
 
     @Test
@@ -103,36 +119,41 @@ public class RedisFilterDatabaseTest {
 
     @Test
     public void pointsAndGisjoinsInterpretedCorrectly() {
-        JedisPool pool = new JedisPool(new JedisPoolConfig(), "localhost");
-        Jedis jclient = pool.getResource();
-        Client cfClient = new Client(pool);
+        Clients clients = getClients();
 
-        assertTrue(jclient.exists("G1"));
-        assertTrue(jclient.exists("G2"));
-        assertTrue(jclient.exists("G3"));
-        assertTrue(jclient.exists("1.1,2.1"));
-        assertTrue(jclient.exists("1.1,3.1"));
-        assertTrue(jclient.exists("2.1,3.1"));
+        assertTrue(clients.jClient.exists("G1"));
+        assertTrue(clients.jClient.exists("G2"));
+        assertTrue(clients.jClient.exists("G3"));
+        assertTrue(clients.jClient.exists("1.1,2.1"));
+        assertTrue(clients.jClient.exists("1.1,3.1"));
+        assertTrue(clients.jClient.exists("2.1,3.1"));
 
         // can only really assert falses with bloom filters...
-        assertFalse(cfClient.cfExists("1.1,2.1", "G4"));
-        assertFalse(cfClient.cfExists("1.1,2.1", "G3"));
+        assertFalse(clients.cfClient.cfExists("1.1,2.1", "G4"));
+        assertFalse(clients.cfClient.cfExists("1.1,2.1", "G3"));
     }
 
     @Test
-    public void canUseFormattingRules() {
-        db.formatSetNameWith(point -> "something");
-        db.formatFilterEntryWith(point -> point.toString(1));
+    public void setsPrecisionVariables() {
+        Clients clients = getClients();
 
-        db.add(new LatLng(0.12345, 0.12345), "G4");
+        GeosieveDatabase.PrecisionContext set = GeosieveDatabase.PrecisionContext.SET_NAME;
+        GeosieveDatabase.PrecisionContext entry = GeosieveDatabase.PrecisionContext.FILTER_ENTRY;
 
-        JedisPool pool = new JedisPool(new JedisPoolConfig(), "localhost");
-        Jedis jclient = pool.getResource();
-        Client cfClient = new Client(pool);
+        assertTrue(clients.jClient.exists(RedisFilterDatabase.precisionKeys.get(set)));
+        assertTrue(clients.jClient.exists(RedisFilterDatabase.precisionKeys.get(entry)));
+        assertEquals("1", clients.jClient.get(RedisFilterDatabase.precisionKeys.get(set)));
+        assertEquals("0", clients.jClient.get(RedisFilterDatabase.precisionKeys.get(entry)));
 
-        assertTrue(jclient.exists("something"));
-        assertTrue(jclient.exists("G4"));
+        db.usePrecision(set, 4);
+        assertEquals("4", clients.jClient.get(RedisFilterDatabase.precisionKeys.get(set)));
 
-        assertFalse(cfClient.cfExists("G4", "0.12345,0.12345"));
+        db.usePrecision(entry, 3);
+        assertEquals("3", clients.jClient.get(RedisFilterDatabase.precisionKeys.get(entry)));
+
+        db.usePrecision(set, 1);
+        db.usePrecision(entry, 0);
+        assertEquals("1", clients.jClient.get(RedisFilterDatabase.precisionKeys.get(set)));
+        assertEquals("0", clients.jClient.get(RedisFilterDatabase.precisionKeys.get(entry)));
     }
 }
