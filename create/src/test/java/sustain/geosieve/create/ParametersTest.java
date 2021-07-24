@@ -101,7 +101,7 @@ public class ParametersTest {
     public void argumentsSetProperly() {
         Namespace params = Parameters.parse(new String[] {"-s", "FILE", "-g", "2", "-c", "80", "-a", "lat"});
         assertEquals(Parameters.GridSource.FILE, params.get("gridSource"));
-        assertEquals(2, params.getDouble("gridPrecision"));
+        assertEquals(2, params.getInt("gridPrecision"));
         assertEquals("lat", params.getString("latProperty"));
     }
 
