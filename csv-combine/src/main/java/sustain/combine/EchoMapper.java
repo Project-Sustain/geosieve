@@ -65,64 +65,37 @@
  * END OF TERMS AND CONDITIONS
  */
 
-package sustain.geosieve.druid.geosievetransform;
+package sustain.combine;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.rebloom.client.Client;
-import org.apache.druid.segment.transform.RowFunction;
-import org.apache.druid.segment.transform.Transform;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
-public class GeosieveTransform implements Transform {
-    private final String name;
-    private final String latProperty;
-    private final String lngProperty;
-    private final String redisHost;
-    private final int redisPort;
+import java.io.IOException;
 
-    @JsonCreator
-    public GeosieveTransform(@JsonProperty("name") final String name,
-                             @JsonProperty("latProperty") final String latProperty,
-                             @JsonProperty("lngProperty") final String lngProperty,
-                             @JsonProperty("host") final String host,
-                             @JsonProperty("port") final int port) {
-        this.name = name;
-        this.latProperty = latProperty;
-        this.lngProperty = lngProperty;
-        this.redisHost = host;
-        this.redisPort = port;
+public class EchoMapper extends Mapper<Object, Text, Text, Text> {
+    public void map(Object key, Text value, Context context)
+            throws IOException, InterruptedException {
+        if (shouldIgnore(value.toString())) {
+            return;
+        }
+
+        String[] tokens = value.toString().split(",");
+        String dims = String.format("%s,%s,%s,", tokens[0], tokens[1], tokens[2]);
+
+        FileSplit file = (FileSplit) context.getInputSplit();
+        String datasetName = getDataset(file.getPath().getName());
+        String taggedValue = String.format(String.format("%s:%s", datasetName, tokens[3]));
+
+        context.write(new Text(dims), new Text(taggedValue));
     }
 
-    @JsonProperty
-    @Override
-    public String getName() {
-        return name;
-    }
+    private boolean shouldIgnore(String record) {
+                                              return record.startsWith("time");
+                                                                               }
 
-    @JsonProperty
-    public String getHost() {
-        return redisHost;
-    }
-
-    @JsonProperty
-    public int getPort() {
-        return redisPort;
-    }
-
-    @JsonProperty
-    public String getLatProperty() {
-        return latProperty;
-    }
-
-    @JsonProperty
-    public String getLngProperty() {
-        return lngProperty;
-    }
-
-    @Override
-    public RowFunction getRowFunction() {
-        return new BloomLookupRowFunction(redisHost, redisPort, latProperty, lngProperty);
+    private String getDataset(String filename) {
+        // Assuming the filename is "TerraClimate_<variable name>_<date>.csv
+        return filename.split("_")[1];
     }
 }

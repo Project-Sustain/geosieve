@@ -11,5 +11,6 @@
     <modules>
         <module>create</module>
         <module>druid-lookup</module>
+        <module>csv-combine</module>
     </modules>
 </project>

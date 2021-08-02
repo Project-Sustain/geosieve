@@ -65,64 +65,29 @@
  * END OF TERMS AND CONDITIONS
  */
 
-package sustain.geosieve.druid.geosievetransform;
+package sustain.combine;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.rebloom.client.Client;
-import org.apache.druid.segment.transform.RowFunction;
-import org.apache.druid.segment.transform.Transform;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-public class GeosieveTransform implements Transform {
-    private final String name;
-    private final String latProperty;
-    private final String lngProperty;
-    private final String redisHost;
-    private final int redisPort;
+public class Main {
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
 
-    @JsonCreator
-    public GeosieveTransform(@JsonProperty("name") final String name,
-                             @JsonProperty("latProperty") final String latProperty,
-                             @JsonProperty("lngProperty") final String lngProperty,
-                             @JsonProperty("host") final String host,
-                             @JsonProperty("port") final int port) {
-        this.name = name;
-        this.latProperty = latProperty;
-        this.lngProperty = lngProperty;
-        this.redisHost = host;
-        this.redisPort = port;
-    }
+        Job job = Job.getInstance(conf, "SuperCombine");
+        job.setMapperClass(EchoMapper.class);
+        job.setReducerClass(CombineReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+        job.setNumReduceTasks((int) (0.95 * 15));
 
-    @JsonProperty
-    @Override
-    public String getName() {
-        return name;
-    }
+        FileInputFormat.addInputPath(job, new Path("/sustain_data/terraclimate/*.csv"));
+        FileOutputFormat.setOutputPath(job, new Path("/sustain_data/terraclimate/combined"));
 
-    @JsonProperty
-    public String getHost() {
-        return redisHost;
-    }
-
-    @JsonProperty
-    public int getPort() {
-        return redisPort;
-    }
-
-    @JsonProperty
-    public String getLatProperty() {
-        return latProperty;
-    }
-
-    @JsonProperty
-    public String getLngProperty() {
-        return lngProperty;
-    }
-
-    @Override
-    public RowFunction getRowFunction() {
-        return new BloomLookupRowFunction(redisHost, redisPort, latProperty, lngProperty);
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }

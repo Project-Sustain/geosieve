@@ -7,10 +7,11 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="druid-geosieve-transform" />
-        <module name="geosieve" />
+        <module name="csv-combine" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="csv-combine" target="1.8" />
       <module name="druid-geosieve-transform" target="8" />
       <module name="geosieve" target="8" />
       <module name="nc2json" target="8" />

@@ -70,19 +70,50 @@ package sustain.geosieve.druid.geosievetransform;
 import io.rebloom.client.Client;
 import org.apache.druid.data.input.Row;
 import org.apache.druid.segment.transform.RowFunction;
+import redis.clients.jedis.Jedis;
 
 public class BloomLookupRowFunction implements RowFunction {
-    private final Client client;
     private final String lngProperty;
     private final String latProperty;
 
-    public BloomLookupRowFunction(Client redisClient, String latProperty, String lngProperty) {
-        client = redisClient;
+    private static Jedis jClient;
+    private static Client cfClient;
+
+    public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty) {
         this.latProperty = latProperty;
         this.lngProperty = lngProperty;
+
+        if (jClient == null) {
+            jClient = new Jedis(redisHost, redisPort);
+        }
+
+        if (cfClient == null) {
+            cfClient = new Client(redisHost, redisPort);
+        }
     }
 
     public Object eval(final Row row) {
-        return "new value!!";
+        synchronized (jClient) {
+            int setNamePrecision = Integer.parseInt(jClient.get("__snprecision"));
+            int filterMemberPrecision = Integer.parseInt(jClient.get("__feprecision"));
+
+            double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
+            double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
+
+            String setPoint = String.format(String.format("%%.%df,%%.%1$df", setNamePrecision), lng, lat);
+            String entryPoint = String.format(String.format("%%.%df,%%.%1$df", filterMemberPrecision), lng, lat);
+
+            if (!jClient.exists(setPoint)) {
+                return "null";
+            }
+
+            for (String possibleGisJion : jClient.smembers(setPoint)) {
+                if (cfClient.cfExists(possibleGisJion, entryPoint)) {
+                    return possibleGisJion;
+                }
+            }
+
+            return "null";
+        }
     }
 }

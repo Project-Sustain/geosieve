@@ -65,64 +65,67 @@
  * END OF TERMS AND CONDITIONS
  */
 
-package sustain.geosieve.druid.geosievetransform;
+package sustain.combine;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.rebloom.client.Client;
-import org.apache.druid.segment.transform.RowFunction;
-import org.apache.druid.segment.transform.Transform;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
 
-public class GeosieveTransform implements Transform {
-    private final String name;
-    private final String latProperty;
-    private final String lngProperty;
-    private final String redisHost;
-    private final int redisPort;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
-    @JsonCreator
-    public GeosieveTransform(@JsonProperty("name") final String name,
-                             @JsonProperty("latProperty") final String latProperty,
-                             @JsonProperty("lngProperty") final String lngProperty,
-                             @JsonProperty("host") final String host,
-                             @JsonProperty("port") final int port) {
-        this.name = name;
-        this.latProperty = latProperty;
-        this.lngProperty = lngProperty;
-        this.redisHost = host;
-        this.redisPort = port;
+public class CombineReducer extends Reducer<Text, Text, Text, Text> {
+    private static List<String> variables;
+    static {
+        variables = new ArrayList<>();
+        variables.addAll(Arrays.asList(new String[] {
+                "PDSI",
+                "aet",
+                "def",
+                "pet",
+                "ppt",
+                "q",
+                "soil",
+                "srad",
+                "swe",
+                "tmax",
+                "tmin",
+                "vap",
+                "vpd",
+                "ws"
+        }));
     }
 
-    @JsonProperty
-    @Override
-    public String getName() {
-        return name;
+    public void reduce(Text key, Iterable<Text> values, Context context)
+            throws IOException, InterruptedException {
+        List<String> inputValues = new ArrayList<>();
+
+        for (Text value : values) {
+            inputValues.add(value.toString());
+        }
+
+        StringBuilder data = new StringBuilder();
+        for (String var : variables) {
+            Stream<String> inputStream = inputValues.stream().sorted();
+            Optional<String> inputValue = inputStream.filter((String e) -> e.startsWith(var)).findFirst();
+            if (inputValue.isPresent()) {
+                data.append(getValue(inputValue.get()) + ",");
+            } else {
+                data.append("null,");
+            }
+        }
+
+        context.write(key, new Text(data.toString()));
     }
 
-    @JsonProperty
-    public String getHost() {
-        return redisHost;
+    private String getValue(String taggedValue) {
+        return taggedValue.split(":")[1];
     }
 
-    @JsonProperty
-    public int getPort() {
-        return redisPort;
-    }
-
-    @JsonProperty
-    public String getLatProperty() {
-        return latProperty;
-    }
-
-    @JsonProperty
-    public String getLngProperty() {
-        return lngProperty;
-    }
-
-    @Override
-    public RowFunction getRowFunction() {
-        return new BloomLookupRowFunction(redisHost, redisPort, latProperty, lngProperty);
+    private String getDataset(String taggedValue) {
+        return taggedValue.split(":")[0];
     }
 }

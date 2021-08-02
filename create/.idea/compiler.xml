@@ -10,7 +10,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="geosieve" target="11" />
+      <module name="geosieve" target="8" />
     </bytecodeTargetLevel>
   </component>
 </project>

@@ -2,9 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/create/csv-combine/csv-combine.iml" filepath="$PROJECT_DIR$/create/csv-combine/csv-combine.iml" />
       <module fileurl="file://$PROJECT_DIR$/druid-lookup/druid-geosieve-transform.iml" filepath="$PROJECT_DIR$/druid-lookup/druid-geosieve-transform.iml" />
       <module fileurl="file://$PROJECT_DIR$/create/geosieve.iml" filepath="$PROJECT_DIR$/create/geosieve.iml" />
-      <module fileurl="file://$PROJECT_DIR$/nc2json/nc2json.iml" filepath="$PROJECT_DIR$/nc2json/nc2json.iml" />
     </modules>
   </component>
 </project>
