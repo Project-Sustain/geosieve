@@ -67,36 +67,34 @@
 
 package sustain.combine;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import net.sourceforge.argparse4j.inf.Namespace;
+import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
+import java.util.Arrays;
 
-public class EchoMapper extends Mapper<Object, Text, Text, Text> {
-    @Override
-    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        if (shouldIgnore(value.toString())) {
-            return;
-        }
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-        String[] tokens = value.toString().split(",");
-        String dims = String.format("%s,%s,%s,", tokens[0], tokens[1], tokens[2]);
+public class ParametersTest {
+    @Test
+    public void parseCorrectArguments() {
+        Namespace n = Parameters.parse(new String[] { "-s", "time", "lat", "lon",
+                "-o", "time", "lat", "lon", "alpha", "beta", "gamma",
+                "-p", "dataset_(.+)",
+                "-i", "/data/*"
+        });
 
-        FileSplit file = (FileSplit) context.getInputSplit();
-        String datasetName = getDataset(file.getPath().getName());
-        String taggedValue = String.format(String.format("%s:%s", datasetName, tokens[3]));
-
-        context.write(new Text(dims), new Text(taggedValue));
+        assertEquals(Arrays.asList("time", "lat", "lon"), n.get("sharedCols"));
+        assertEquals(Arrays.asList("time", "lat", "lon", "alpha", "beta", "gamma"), n.get("outputCols"));
+        assertEquals("dataset_(.+)", n.get("filenamePattern"));
+        assertEquals("/data/*", n.get("inputPath"));
     }
 
-    private boolean shouldIgnore(String record) {
-        return record.startsWith("time");
-    }
-
-    private String getDataset(String filename) {
-        return filename.split("_")[1];
+    @Test
+    public void requireAllArguments() {
+        assertThrows(RuntimeException.class, () -> Parameters.parse(new String[] {}));
+        assertThrows(RuntimeException.class, () -> Parameters.parse(new String[] { "-s", "time" }));
+        assertThrows(RuntimeException.class, () -> Parameters.parse(new String[] { "-s", "time", "-o", "time" }));
+        assertThrows(RuntimeException.class, () -> Parameters.parse(new String[] { "-s", "time", "-o", "time", "-p", "pattern" }));
     }
 }

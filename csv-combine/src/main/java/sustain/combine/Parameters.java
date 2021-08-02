@@ -67,36 +67,44 @@
 
 package sustain.combine;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.inf.ArgumentParser;
+import net.sourceforge.argparse4j.inf.ArgumentParserException;
+import net.sourceforge.argparse4j.inf.Namespace;
 
-import java.io.IOException;
+import java.util.List;
 
-public class EchoMapper extends Mapper<Object, Text, Text, Text> {
-    @Override
-    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        if (shouldIgnore(value.toString())) {
-            return;
+public class Parameters {
+    private static final ArgumentParser parser;
+
+    static {
+        parser = ArgumentParsers.newFor("csv-combine").build()
+                .description("Combine multiple CSVs that share columns");
+        parser.addArgument("-s", "--sharedCols")
+                .metavar("column")
+                .nargs("+")
+                .help("The columns that all input CSVs share (short name)")
+                .required(true);
+        parser.addArgument("-o", "--outputCols")
+                .metavar("column")
+                .nargs("+")
+                .help("The order to provide columns in the output CSVs (short name)")
+                .required(true);
+        parser.addArgument("-p", "--filenamePattern")
+                .metavar("pattern")
+                .help("A regex that will extract the short name of a variable from the input filename")
+                .required(true);
+        parser.addArgument("-i", "--inputPath")
+                .metavar("path")
+                .help("Where to get input CSVs from")
+                .required(true);
+    }
+
+    public static Namespace parse(String[] args) {
+        try {
+            return parser.parseArgs(args);
+        } catch (ArgumentParserException e) {
+            throw new RuntimeException(e);
         }
-
-        String[] tokens = value.toString().split(",");
-        String dims = String.format("%s,%s,%s,", tokens[0], tokens[1], tokens[2]);
-
-        FileSplit file = (FileSplit) context.getInputSplit();
-        String datasetName = getDataset(file.getPath().getName());
-        String taggedValue = String.format(String.format("%s:%s", datasetName, tokens[3]));
-
-        context.write(new Text(dims), new Text(taggedValue));
-    }
-
-    private boolean shouldIgnore(String record) {
-        return record.startsWith("time");
-    }
-
-    private String getDataset(String filename) {
-        return filename.split("_")[1];
     }
 }
