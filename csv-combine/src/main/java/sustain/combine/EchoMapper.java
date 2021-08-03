@@ -67,52 +67,42 @@
 
 package sustain.combine;
 
-import net.sourceforge.argparse4j.inf.Namespace;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class EchoMapper extends Mapper<Object, Text, Text, Text> {
-    static List<String> sourceColumns = new ArrayList<>();
-    static Pattern filenamePattern;
-
-    public static void use(Namespace params) {
-        sourceColumns.addAll(params.get("sourceColumns"));
-        filenamePattern = Pattern.compile(params.get("filenamePattern"));
-    }
-
     @Override
     public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        if (shouldIgnore(value.toString())) {
+        Configuration conf = context.getConfiguration();
+
+        if (shouldIgnore(value.toString(), conf.getStrings(Parameters.CP_SHARED_COLS))) {
             return;
         }
 
         String[] tokens = value.toString().split(",");
-        String dims = tokensToKey(tokens);
+        String dims = tokensToKey(tokens, conf.getStrings(Parameters.CP_SHARED_COLS));
 
-        String varShortName = getShortName(context);
+        String varShortName = getShortName(context, conf.getPattern(Parameters.CP_FILENAME_PATTERN, Pattern.compile("")));
         String taggedValue = String.format("%s:%s", varShortName, tokens[3]);
 
         context.write(new Text(dims), new Text(taggedValue));
     }
 
-    private String tokensToKey(String[] tokens) {
+    private String tokensToKey(String[] tokens, String[] sharedColumns) {
         StringBuilder key = new StringBuilder();
-        for (int i = 0; i < sourceColumns.size(); i++) {
+        for (int i = 0; i < sharedColumns.length; i++) {
             key.append(tokens[i]).append(",");
         }
         return key.toString();
     }
 
-    private String getShortName(Context context) {
+    private String getShortName(Context context, Pattern filenamePattern) {
         FileSplit file = (FileSplit) context.getInputSplit();
         String filename = file.getPath().getName();
 
@@ -124,7 +114,7 @@ public class EchoMapper extends Mapper<Object, Text, Text, Text> {
         }
     }
 
-    private boolean shouldIgnore(String record) {
-        return record.startsWith(sourceColumns.get(0));
+    private boolean shouldIgnore(String record, String[] sharedColumns) {
+        return record.startsWith(sharedColumns[0]);
     }
 }

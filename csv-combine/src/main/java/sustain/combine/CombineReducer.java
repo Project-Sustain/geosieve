@@ -68,10 +68,12 @@
 package sustain.combine;
 
 import net.sourceforge.argparse4j.inf.Namespace;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.sql.ParameterMetaData;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -79,13 +81,9 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 public class CombineReducer extends Reducer<Text, Text, Text, Text> {
-    private static List<String> outputColumns = new ArrayList<>();
-
-    public static void use(Namespace params) {
-        outputColumns.addAll(params.get("outputCols"));
-    }
-
     public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        Configuration conf = context.getConfiguration();
+
         List<String> inputValues = new ArrayList<>();
 
         for (Text value : values) {
@@ -93,7 +91,7 @@ public class CombineReducer extends Reducer<Text, Text, Text, Text> {
         }
 
         StringBuilder data = new StringBuilder();
-        for (String var : outputColumns) {
+        for (String var : conf.getStrings(Parameters.CP_OUTPUT_COLS)) {
             Stream<String> inputStream = inputValues.stream().sorted();
             Optional<String> inputValue = inputStream.filter((String e) -> e.startsWith(var)).findFirst();
             if (inputValue.isPresent()) {

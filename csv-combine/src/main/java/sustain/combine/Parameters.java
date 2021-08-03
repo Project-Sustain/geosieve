@@ -75,6 +75,9 @@ import net.sourceforge.argparse4j.inf.Namespace;
 import java.util.List;
 
 public class Parameters {
+    public static final String CP_SHARED_COLS = "cc_sharedCols";
+    public static final String CP_OUTPUT_COLS = "cc_outputCols";
+    public static final String CP_FILENAME_PATTERN = "cc_filenamePattern";
     private static final ArgumentParser parser;
 
     static {

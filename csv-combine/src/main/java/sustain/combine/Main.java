@@ -75,13 +75,20 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Pattern;
+
 public class Main {
     public static void main(String[] args) throws Exception {
+        args = Arrays.copyOfRange(args, 1, args.length);
+
         Namespace arguments = Parameters.parse(args);
-        EchoMapper.use(arguments);
-        CombineReducer.use(arguments);
 
         Configuration conf = new Configuration();
+        conf.setStrings(Parameters.CP_SHARED_COLS, arguments.<List<String>>get("sharedCols").toArray(new String[]{}));
+        conf.setStrings(Parameters.CP_OUTPUT_COLS, arguments.<List<String>>get("outputCols").toArray(new String[]{}));
+        conf.setPattern(Parameters.CP_FILENAME_PATTERN, Pattern.compile(arguments.get("filenamePattern")));
 
         Job job = Job.getInstance(conf, "csv-combine");
         job.setJarByClass(Main.class);
