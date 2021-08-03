@@ -67,46 +67,6 @@
 
 package sustain.combine;
 
-import net.sourceforge.argparse4j.inf.Namespace;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+public class CSV {
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
-
-public class CombineReducer extends Reducer<Text, Text, Text, Text> {
-    private static List<String> outputColumns = new ArrayList<>();
-
-    public static void use(Namespace params) {
-        outputColumns.addAll(params.get("outputCols"));
-    }
-
-    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        List<String> inputValues = new ArrayList<>();
-
-        for (Text value : values) {
-            inputValues.add(value.toString());
-        }
-
-        StringBuilder data = new StringBuilder();
-        for (String var : outputColumns) {
-            Stream<String> inputStream = inputValues.stream().sorted();
-            Optional<String> inputValue = inputStream.filter((String e) -> e.startsWith(var)).findFirst();
-            if (inputValue.isPresent()) {
-                data.append(getValue(inputValue.get())).append(",");
-            } else {
-                data.append("null,");
-            }
-        }
-
-        context.write(key, new Text(data.toString()));
-    }
-
-    private String getValue(String taggedValue) {
-        return taggedValue.split(":")[1];
-    }
 }

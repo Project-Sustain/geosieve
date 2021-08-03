@@ -67,6 +67,7 @@
 
 package sustain.combine;
 
+import net.sourceforge.argparse4j.inf.Namespace;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -76,17 +77,22 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class Main {
     public static void main(String[] args) throws Exception {
+        Namespace arguments = Parameters.parse(args);
+        EchoMapper.use(arguments);
+        CombineReducer.use(arguments);
+
         Configuration conf = new Configuration();
 
-        Job job = Job.getInstance(conf, "SuperCombine");
+        Job job = Job.getInstance(conf, "csv-combine");
+        job.setJarByClass(Main.class);
         job.setMapperClass(EchoMapper.class);
         job.setReducerClass(CombineReducer.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
         job.setNumReduceTasks((int) (0.95 * 15));
 
-        FileInputFormat.addInputPath(job, new Path("/sustain_data/terraclimate/*.csv"));
-        FileOutputFormat.setOutputPath(job, new Path("/sustain_data/terraclimate/combined"));
+        FileInputFormat.addInputPath(job, new Path(arguments.<String>get("inputPath")));
+        FileOutputFormat.setOutputPath(job, new Path("/sustain_data/gridmet/combined"));
 
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }

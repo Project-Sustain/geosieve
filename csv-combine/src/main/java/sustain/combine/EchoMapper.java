@@ -67,6 +67,7 @@
 
 package sustain.combine;
 
+import net.sourceforge.argparse4j.inf.Namespace;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -74,8 +75,20 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class EchoMapper extends Mapper<Object, Text, Text, Text> {
+    static List<String> sourceColumns = new ArrayList<>();
+    static Pattern filenamePattern;
+
+    public static void use(Namespace params) {
+        sourceColumns.addAll(params.get("sourceColumns"));
+        filenamePattern = Pattern.compile(params.get("filenamePattern"));
+    }
+
     @Override
     public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
         if (shouldIgnore(value.toString())) {
@@ -83,20 +96,35 @@ public class EchoMapper extends Mapper<Object, Text, Text, Text> {
         }
 
         String[] tokens = value.toString().split(",");
-        String dims = String.format("%s,%s,%s,", tokens[0], tokens[1], tokens[2]);
+        String dims = tokensToKey(tokens);
 
-        FileSplit file = (FileSplit) context.getInputSplit();
-        String datasetName = getDataset(file.getPath().getName());
-        String taggedValue = String.format(String.format("%s:%s", datasetName, tokens[3]));
+        String varShortName = getShortName(context);
+        String taggedValue = String.format("%s:%s", varShortName, tokens[3]);
 
         context.write(new Text(dims), new Text(taggedValue));
     }
 
-    private boolean shouldIgnore(String record) {
-        return record.startsWith("time");
+    private String tokensToKey(String[] tokens) {
+        StringBuilder key = new StringBuilder();
+        for (int i = 0; i < sourceColumns.size(); i++) {
+            key.append(tokens[i]).append(",");
+        }
+        return key.toString();
     }
 
-    private String getDataset(String filename) {
-        return filename.split("_")[1];
+    private String getShortName(Context context) {
+        FileSplit file = (FileSplit) context.getInputSplit();
+        String filename = file.getPath().getName();
+
+        Matcher m = filenamePattern.matcher(filename);
+        if (m.find()) {
+            return m.group(1);
+        } else {
+            throw new RuntimeException(String.format("Failed to get variable name for %s", filename));
+        }
+    }
+
+    private boolean shouldIgnore(String record) {
+        return record.startsWith(sourceColumns.get(0));
     }
 }
