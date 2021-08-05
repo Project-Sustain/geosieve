@@ -95,6 +95,8 @@ public abstract class Datasource implements Iterable<LatLng> {
         switch (getType(file)) {
             case JSON: {
                 return new JsonDatasource(latProperty, lngProperty, file);
+            } case CSV: {
+                return new CSVDatasource(latProperty, lngProperty, file);
             } default: {
                 throw new IllegalArgumentException(String.format("File type of %s is not supported", file.getName()));
             }
