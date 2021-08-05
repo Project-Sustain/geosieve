@@ -90,27 +90,29 @@ public class CSVDatasource extends Datasource {
             throw new RuntimeException(e);
         }
 
-        Util.Pair<Integer, Integer> indices = parseCSVHeader(scanner);
+        Util.Pair<Integer, Integer> indices = parseCSVHeader();
         latIndex = indices.first;
         lngIndex = indices.second;
     }
 
-    private Util.Pair<Integer, Integer> parseCSVHeader(Scanner scanner) {
-        String header = scanner.nextLine();
-        String[] columns = header.split(",");
+    private Util.Pair<Integer, Integer> parseCSVHeader() {
+        synchronized (scanner) {
+            String header = scanner.nextLine();
+            String[] columns = header.split(",");
 
-        int latIndex = -1;
-        int lngIndex = -1;
-        for (int i = 0; i < columns.length; i++) {
-            if (columns[i].equals(latProperty)) {
-                latIndex = i;
-            } else if (columns[i].equals(lngProperty)) {
-                lngIndex = i;
+            int latIndex = -1;
+            int lngIndex = -1;
+            for (int i = 0; i < columns.length; i++) {
+                if (columns[i].equals(latProperty)) {
+                    latIndex = i;
+                } else if (columns[i].equals(lngProperty)) {
+                    lngIndex = i;
+                }
             }
-        }
-        checkIndices(latIndex, lngIndex);
+            checkIndices(latIndex, lngIndex);
 
-        return new Util.Pair<>(latIndex, lngIndex);
+            return new Util.Pair<>(latIndex, lngIndex);
+        }
     }
 
     private void checkIndices(int latIndex, int lngIndex) {
@@ -152,14 +154,18 @@ public class CSVDatasource extends Datasource {
         return new Iterator<LatLng>() {
             @Override
             public boolean hasNext() {
-                return scanner.hasNextLine();
+                synchronized (scanner) {
+                    return scanner.hasNextLine();
+                }
             }
 
             @Override
             public LatLng next() {
                 return Util.continueUntilNotNull(() -> {
-                    String record = scanner.nextLine();
-                    return parseCSVRecord(record);
+                    synchronized (scanner) {
+                        String record = scanner.nextLine();
+                        return parseCSVRecord(record);
+                    }
                 }, LatLng.BAD_POINT);
             }
         };

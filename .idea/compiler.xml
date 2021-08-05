@@ -8,6 +8,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="druid-geosieve-transform" />
         <module name="csv-combine" />
+        <module name="geosieve" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
