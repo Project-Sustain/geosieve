@@ -90,6 +90,7 @@ public class RedisFilterDatabase implements GeosieveDatabase {
     private final Client bloomClient;
     private Function<LatLng, String> setNameFormatRule;
     private Function<LatLng, String> filterEntryFormatRule;
+    private String keyPrefix = "";
 
     public RedisFilterDatabase() {
         this("localhost", DEFAULT_REDIS_PORT);
@@ -115,18 +116,18 @@ public class RedisFilterDatabase implements GeosieveDatabase {
 
     @Override
     public synchronized void add(LatLng point, String gisJoin) {
-        jedisClient.sadd(setNameFormatRule.apply(point), gisJoin);
-        bloomClient.cfAdd(gisJoin, filterEntryFormatRule.apply(point));
+        jedisClient.sadd(keyPrefix + setNameFormatRule.apply(point), gisJoin);
+        bloomClient.cfAdd(keyPrefix + gisJoin, filterEntryFormatRule.apply(point));
     }
 
     @Override
     public synchronized boolean contains(LatLng point, String gisJoin) {
-        return bloomClient.cfExists(gisJoin, filterEntryFormatRule.apply(point));
+        return bloomClient.cfExists(keyPrefix + gisJoin, filterEntryFormatRule.apply(point));
     }
 
     @Override
     public synchronized void clear(LatLng point, String gisJoin) {
-        bloomClient.cfDel(gisJoin, filterEntryFormatRule.apply(point));
+        bloomClient.cfDel(keyPrefix + gisJoin, filterEntryFormatRule.apply(point));
     }
 
     public void usePrecision(PrecisionContext type, int precision) {
@@ -142,7 +143,12 @@ public class RedisFilterDatabase implements GeosieveDatabase {
             case FILTER_ENTRY: filterEntryFormatRule = newRule; break;
         }
 
-        jedisClient.set(precisionKeys.get(type), Integer.toString(precision));
+        jedisClient.set(keyPrefix + precisionKeys.get(type), Integer.toString(precision));
+    }
+
+    @Override
+    public void useKeyPrefix(String prefix) {
+        keyPrefix = prefix;
     }
 
     @Override

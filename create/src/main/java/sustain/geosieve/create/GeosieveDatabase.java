@@ -78,6 +78,7 @@ public interface GeosieveDatabase {
     void clear(LatLng point, String gisJoin);
 
     void usePrecision(PrecisionContext type, int precision);
+    void useKeyPrefix(String prefix);
 
     default void cleanup() { }
 }

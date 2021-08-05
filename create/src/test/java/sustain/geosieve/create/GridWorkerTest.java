@@ -109,6 +109,11 @@ class DummyFilters implements GeosieveDatabase {
 
     }
 
+    @Override
+    public void useKeyPrefix(String prefix) {
+
+    }
+
     public void clearAll() {
         filters.clear();
     }

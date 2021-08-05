@@ -156,4 +156,20 @@ public class RedisFilterDatabaseTest {
         assertEquals("1", clients.jClient.get(RedisFilterDatabase.precisionKeys.get(set)));
         assertEquals("0", clients.jClient.get(RedisFilterDatabase.precisionKeys.get(entry)));
     }
+
+    @Test
+    public void respectsKeyPrefix() {
+        Clients clients = getClients();
+
+        db.useKeyPrefix("some_prefix_");
+
+        db.usePrecision(GeosieveDatabase.PrecisionContext.SET_NAME, 1);
+        db.add(new LatLng(5.51, 5.51), "alpha");
+        db.add(new LatLng(5.52, 5.52), "alpha");
+
+        assertTrue(clients.jClient.exists("some_prefix_alpha"));
+        assertTrue(clients.jClient.exists("some_prefix_5.5,5.5"));
+        assertTrue(clients.jClient.exists("some_prefix___snprecision"));
+        assertFalse(clients.jClient.exists("alpha"));
+    }
 }

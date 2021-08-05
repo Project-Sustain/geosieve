@@ -108,6 +108,7 @@ public class Parameters {
         defaultParameters.put("gridExtents", Extents.COLORADO.asNESWList());
         defaultParameters.put("files", Collections.singletonList("data.json"));
         defaultParameters.put("filterOutputFile", "./out.txt");
+        defaultParameters.put("keyPrefix", "_");
         defaults = Collections.unmodifiableMap(defaultParameters);
 
         parser = ArgumentParsers.newFor("Geosieve").build()
@@ -153,6 +154,10 @@ public class Parameters {
         parser.addArgument("-o", "--filterOutputFile")
                 .help("With FILE dbType, what file to output serialized bloom filters into")
                 .setDefault(defaults.get("filterOutputFile"))
+                .type(String.class);
+        parser.addArgument("-p", "--keyPrefix")
+                .help("With REDIS dbTpe, add this prefix to the beginning of each key put into the database")
+                .setDefault(defaults.get("entryPrefix"))
                 .type(String.class);
     }
 
