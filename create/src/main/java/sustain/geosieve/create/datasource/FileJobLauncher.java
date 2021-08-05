@@ -82,6 +82,7 @@ public class FileJobLauncher extends JobLauncher {
 
     public FileJobLauncher(Namespace params) {
         super(params);
+        filters.useKeyPrefix(params.get("keyPrefix"));
     }
 
     @Override
@@ -92,7 +93,6 @@ public class FileJobLauncher extends JobLauncher {
                 params.<List<String>>get("files").toArray(new String[]{}));
 
         logger.info("Launching {} threads.", params.getInt("concurrency"));
-        filters.useKeyPrefix(params.get("keyPrefix"));
         Util.doThreads(() -> new GridWorker(pointSource, filters, mapper), params.getInt("concurrency"));
         logger.info("Finished.");
     }
