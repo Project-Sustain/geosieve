@@ -75,13 +75,15 @@ import redis.clients.jedis.Jedis;
 public class BloomLookupRowFunction implements RowFunction {
     private final String lngProperty;
     private final String latProperty;
+    private final String prefix;
 
     private static Jedis jClient;
     private static Client cfClient;
 
-    public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty) {
+    public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix) {
         this.latProperty = latProperty;
         this.lngProperty = lngProperty;
+        this.prefix = prefix;
 
         if (jClient == null) {
             jClient = new Jedis(redisHost, redisPort);
@@ -94,13 +96,13 @@ public class BloomLookupRowFunction implements RowFunction {
 
     public Object eval(final Row row) {
         synchronized (jClient) {
-            int setNamePrecision = Integer.parseInt(jClient.get("__snprecision"));
-            int filterMemberPrecision = Integer.parseInt(jClient.get("__feprecision"));
+            int setNamePrecision = Integer.parseInt(jClient.get(prefix + "__snprecision"));
+            int filterMemberPrecision = Integer.parseInt(jClient.get(prefix + "__feprecision"));
 
             double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
             double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
 
-            String setPoint = String.format(String.format("%%.%df,%%.%1$df", setNamePrecision), lng, lat);
+            String setPoint = prefix + String.format(String.format("%%.%df,%%.%1$df", setNamePrecision), lng, lat);
             String entryPoint = String.format(String.format("%%.%df,%%.%1$df", filterMemberPrecision), lng, lat);
 
             if (!jClient.exists(setPoint)) {

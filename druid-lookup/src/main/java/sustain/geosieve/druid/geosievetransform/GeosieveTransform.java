@@ -70,6 +70,7 @@ package sustain.geosieve.druid.geosievetransform;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.rebloom.client.Client;
+import org.apache.druid.guice.annotations.Json;
 import org.apache.druid.segment.transform.RowFunction;
 import org.apache.druid.segment.transform.Transform;
 import redis.clients.jedis.JedisPool;
@@ -81,18 +82,21 @@ public class GeosieveTransform implements Transform {
     private final String lngProperty;
     private final String redisHost;
     private final int redisPort;
+    private final String prefix;
 
     @JsonCreator
     public GeosieveTransform(@JsonProperty("name") final String name,
                              @JsonProperty("latProperty") final String latProperty,
                              @JsonProperty("lngProperty") final String lngProperty,
                              @JsonProperty("host") final String host,
-                             @JsonProperty("port") final int port) {
+                             @JsonProperty("port") final int port,
+                             @JsonProperty("prefix") final String prefix) {
         this.name = name;
         this.latProperty = latProperty;
         this.lngProperty = lngProperty;
         this.redisHost = host;
         this.redisPort = port;
+        this.prefix = prefix;
     }
 
     @JsonProperty
@@ -123,6 +127,6 @@ public class GeosieveTransform implements Transform {
 
     @Override
     public RowFunction getRowFunction() {
-        return new BloomLookupRowFunction(redisHost, redisPort, latProperty, lngProperty);
+        return new BloomLookupRowFunction(redisHost, redisPort, latProperty, lngProperty, prefix);
     }
 }
