@@ -67,51 +67,314 @@
 
 package sustain.combine;
 
-import net.sourceforge.argparse4j.ArgumentParsers;
-import net.sourceforge.argparse4j.inf.ArgumentParser;
-import net.sourceforge.argparse4j.inf.ArgumentParserException;
-import net.sourceforge.argparse4j.inf.Namespace;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.RawComparator;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.security.Credentials;
+import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
-public class Parameters {
-    public static final String CP_SHARED_COLS = "cc_sharedCols";
-    public static final String CP_OUTPUT_COLS = "cc_outputCols";
-    public static final String CP_FILENAME_PATTERN = "cc_filenamePattern";
-    private static final ArgumentParser parser;
+import static org.junit.jupiter.api.Assertions.*;
 
-    static {
-        parser = ArgumentParsers.newFor("csv-combine").build()
-                .description("Combine multiple CSVs that share columns");
-        parser.addArgument("-s", "--sharedCols")
-                .metavar("column")
-                .nargs("+")
-                .help("The columns that all input CSVs share (short name)")
-                .required(true);
-        parser.addArgument("-o", "--outputCols")
-                .metavar("column")
-                .nargs("+")
-                .help("The order to provide columns in the output CSVs (short name)")
-                .required(true);
-        parser.addArgument("-p", "--filenamePattern")
-                .metavar("pattern")
-                .help("A regex that will extract the short name of a variable from the input filename")
-                .required(true);
-        parser.addArgument("-i", "--inputPath")
-                .metavar("path")
-                .help("Where to get input CSVs from")
-                .required(true);
-        parser.addArgument("-n", "--nodeCount")
-                .metavar("count")
-                .help("How many nodes this job will run on")
-                .required(false);
-    }
+class TestableCombineReducer extends CombineReducer {
+    class ExposedContext extends Context {
+        public StringBuilder result;
 
-    public static Namespace parse(String[] args) {
-        try {
-            return parser.parseArgs(args);
-        } catch (ArgumentParserException e) {
-            throw new RuntimeException(e);
+        public ExposedContext(StringBuilder s) {
+            result = s;
         }
+
+        @Override
+        public void write(Text text, Text text2) throws IOException, InterruptedException {
+            result.append(text.toString()).append(text2.toString());
+        }
+
+        @Override
+        public Configuration getConfiguration() {
+            Configuration c = new Configuration();
+
+            c.setStrings(Parameters.CP_OUTPUT_COLS, "fourth", "fifth", "sixth", "seventh");
+
+            return c;
+        }
+
+        @Override
+        public boolean nextKey() throws IOException, InterruptedException {
+            return false;
+        }
+
+        @Override
+        public Iterable<Text> getValues() throws IOException, InterruptedException {
+            return null;
+        }
+
+        @Override
+        public boolean nextKeyValue() throws IOException, InterruptedException {
+            return false;
+        }
+
+        @Override
+        public Text getCurrentKey() throws IOException, InterruptedException {
+            return null;
+        }
+
+        @Override
+        public Text getCurrentValue() throws IOException, InterruptedException {
+            return null;
+        }
+
+        @Override
+        public OutputCommitter getOutputCommitter() {
+            return null;
+        }
+
+        @Override
+        public TaskAttemptID getTaskAttemptID() {
+            return null;
+        }
+
+        @Override
+        public void setStatus(String s) {
+
+        }
+
+        @Override
+        public String getStatus() {
+            return null;
+        }
+
+        @Override
+        public float getProgress() {
+            return 0;
+        }
+
+        @Override
+        public Counter getCounter(Enum<?> anEnum) {
+            return null;
+        }
+
+        @Override
+        public Counter getCounter(String s, String s1) {
+            return null;
+        }
+
+        @Override
+        public Credentials getCredentials() {
+            return null;
+        }
+
+        @Override
+        public JobID getJobID() {
+            return null;
+        }
+
+        @Override
+        public int getNumReduceTasks() {
+            return 0;
+        }
+
+        @Override
+        public Path getWorkingDirectory() throws IOException {
+            return null;
+        }
+
+        @Override
+        public Class<?> getOutputKeyClass() {
+            return null;
+        }
+
+        @Override
+        public Class<?> getOutputValueClass() {
+            return null;
+        }
+
+        @Override
+        public Class<?> getMapOutputKeyClass() {
+            return null;
+        }
+
+        @Override
+        public Class<?> getMapOutputValueClass() {
+            return null;
+        }
+
+        @Override
+        public String getJobName() {
+            return null;
+        }
+
+        @Override
+        public Class<? extends InputFormat<?, ?>> getInputFormatClass() throws ClassNotFoundException {
+            return null;
+        }
+
+        @Override
+        public Class<? extends Mapper<?, ?, ?, ?>> getMapperClass() throws ClassNotFoundException {
+            return null;
+        }
+
+        @Override
+        public Class<? extends Reducer<?, ?, ?, ?>> getCombinerClass() throws ClassNotFoundException {
+            return null;
+        }
+
+        @Override
+        public Class<? extends Reducer<?, ?, ?, ?>> getReducerClass() throws ClassNotFoundException {
+            return null;
+        }
+
+        @Override
+        public Class<? extends OutputFormat<?, ?>> getOutputFormatClass() throws ClassNotFoundException {
+            return null;
+        }
+
+        @Override
+        public Class<? extends Partitioner<?, ?>> getPartitionerClass() throws ClassNotFoundException {
+            return null;
+        }
+
+        @Override
+        public RawComparator<?> getSortComparator() {
+            return null;
+        }
+
+        @Override
+        public String getJar() {
+            return null;
+        }
+
+        @Override
+        public RawComparator<?> getCombinerKeyGroupingComparator() {
+            return null;
+        }
+
+        @Override
+        public RawComparator<?> getGroupingComparator() {
+            return null;
+        }
+
+        @Override
+        public boolean getJobSetupCleanupNeeded() {
+            return false;
+        }
+
+        @Override
+        public boolean getTaskCleanupNeeded() {
+            return false;
+        }
+
+        @Override
+        public boolean getProfileEnabled() {
+            return false;
+        }
+
+        @Override
+        public String getProfileParams() {
+            return null;
+        }
+
+        @Override
+        public Configuration.IntegerRanges getProfileTaskRange(boolean b) {
+            return null;
+        }
+
+        @Override
+        public String getUser() {
+            return null;
+        }
+
+        @Override
+        public boolean getSymlink() {
+            return false;
+        }
+
+        @Override
+        public Path[] getArchiveClassPaths() {
+            return new Path[0];
+        }
+
+        @Override
+        public URI[] getCacheArchives() throws IOException {
+            return new URI[0];
+        }
+
+        @Override
+        public URI[] getCacheFiles() throws IOException {
+            return new URI[0];
+        }
+
+        @Override
+        public Path[] getLocalCacheArchives() throws IOException {
+            return new Path[0];
+        }
+
+        @Override
+        public Path[] getLocalCacheFiles() throws IOException {
+            return new Path[0];
+        }
+
+        @Override
+        public Path[] getFileClassPaths() {
+            return new Path[0];
+        }
+
+        @Override
+        public String[] getArchiveTimestamps() {
+            return new String[0];
+        }
+
+        @Override
+        public String[] getFileTimestamps() {
+            return new String[0];
+        }
+
+        @Override
+        public int getMaxMapAttempts() {
+            return 0;
+        }
+
+        @Override
+        public int getMaxReduceAttempts() {
+            return 0;
+        }
+
+        @Override
+        public void progress() {
+
+        }
+    }
+}
+
+public class CombineReducerTest {
+    @Test
+    public void reducesProperly() throws IOException, InterruptedException {
+        StringBuilder result = new StringBuilder();
+
+        TestableCombineReducer cr = new TestableCombineReducer();
+        TestableCombineReducer.ExposedContext ctx = cr.new ExposedContext(result);
+
+        Iterable<Text> values = new Iterable<Text>() {
+            @Override
+            public Iterator<Text> iterator() {
+                List<Text> values = new ArrayList<>();
+
+                values.add(new Text("fourth:alpha"));
+                values.add(new Text("fifth:beta"));
+                values.add(new Text("sixth:gamma"));
+
+                return values.iterator();
+            }
+        };
+
+        cr.reduce(new Text("a,b,c,"), values, ctx);
+
+        assertEquals("a,b,c,alpha,beta,gamma,null", ctx.result.toString());
     }
 }

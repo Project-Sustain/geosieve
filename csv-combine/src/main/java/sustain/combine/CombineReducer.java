@@ -67,15 +67,12 @@
 
 package sustain.combine;
 
-import net.sourceforge.argparse4j.inf.Namespace;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.sql.ParameterMetaData;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -101,7 +98,7 @@ public class CombineReducer extends Reducer<Text, Text, Text, Text> {
             }
         }
 
-        context.write(key, new Text(data.toString()));
+        context.write(key, new Text(data.substring(0, data.length() - 1)));
     }
 
     private String getValue(String taggedValue) {

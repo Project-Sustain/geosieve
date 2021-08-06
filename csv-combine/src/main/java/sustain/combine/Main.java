@@ -96,7 +96,8 @@ public class Main {
         job.setReducerClass(CombineReducer.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
-        job.setNumReduceTasks((int) (0.95 * 15));
+        job.setNumReduceTasks((int) (0.95 * arguments.getInt("nodeCount")));
+        job.getConfiguration().set("mapreduce.textoutputformat.separator", "");
 
         FileInputFormat.addInputPath(job, new Path(arguments.<String>get("inputPath")));
         FileOutputFormat.setOutputPath(job, new Path("/sustain_data/gridmet/combined"));
