@@ -93,14 +93,14 @@ public class RedisFilterDatabase implements GeosieveDatabase {
     private String keyPrefix = "";
 
     public RedisFilterDatabase() {
-        this("localhost", DEFAULT_REDIS_PORT);
+        this("localhost", DEFAULT_REDIS_PORT, "");
     }
 
     public RedisFilterDatabase(String host) {
-        this(host, DEFAULT_REDIS_PORT);
+        this(host, DEFAULT_REDIS_PORT, "");
     }
 
-    public RedisFilterDatabase(String host, int port) {
+    public RedisFilterDatabase(String host, int port, String keyPrefix) {
         if (!pools.containsKey(host)) {
             JedisPoolConfig conf = new JedisPoolConfig();
             pools.put(host, new JedisPool(conf, host));
@@ -109,6 +109,8 @@ public class RedisFilterDatabase implements GeosieveDatabase {
 
         jedisClient = pools.get(host).getResource();
         bloomClient = new Client(pool);
+
+        useKeyPrefix(keyPrefix);
 
         usePrecision(PrecisionContext.SET_NAME, 1);
         usePrecision(PrecisionContext.FILTER_ENTRY, 0);

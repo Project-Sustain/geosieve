@@ -96,12 +96,6 @@ public class RedisFilterDatabaseTest {
         jPool = new JedisPool(new JedisPoolConfig(), "localhost");
     }
 
-    @AfterAll
-    private static void destroy() {
-        db.cleanup();
-        jPool.close();
-    }
-
     private static Clients getClients() {
         Clients clients = new Clients();
         clients.jClient = jPool.getResource();
