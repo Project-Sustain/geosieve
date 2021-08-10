@@ -96,26 +96,45 @@ public class BloomLookupRowFunction implements RowFunction {
 
     public Object eval(final Row row) {
         synchronized (jClient) {
-            int setNamePrecision = Integer.parseInt(jClient.get(prefix + "__snprecision"));
-            int filterMemberPrecision = Integer.parseInt(jClient.get(prefix + "__feprecision"));
+            int setNamePrecision = 1;
+            try {
+                setNamePrecision = Integer.parseInt(jClient.get(prefix + "__snprecision"));
+            } catch (NumberFormatException ignored) { }
+
+            int filterMemberPrecision = 3;
+            try {
+                filterMemberPrecision = Integer.parseInt(jClient.get(prefix + "__feprecision"));
+            } catch (NumberFormatException ignored) { }
 
             double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
             double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
 
             String setPoint = prefix + String.format(String.format("%%.%df,%%.%1$df", setNamePrecision), lng, lat);
-            String entryPoint = String.format(String.format("%%.%df,%%.%1$df", filterMemberPrecision), lng, lat);
-
-            if (!jClient.exists(setPoint)) {
-                return "null";
+            String entryPoint = null;
+            if (filterMemberPrecision == 0) {
+                entryPoint = String.format("%f,%f", lng, lat);
+            } else {
+                entryPoint = String.format(String.format("%%.%df,%%.%1$df", filterMemberPrecision), lng, lat);
             }
 
+            if (!jClient.exists(setPoint)) {
+                return "tried " + setPoint;
+            }
+
+            StringBuilder debug = new StringBuilder();
+            debug.append("set point is ").append(setPoint).append("\n");
+            debug.append("filter entry is ").append(entryPoint).append("\n");
+            debug.append("snprecision is ").append(setNamePrecision).append("\n");
+            debug.append("feprecision is ").append(filterMemberPrecision).append("\n");
+
             for (String possibleGisJion : jClient.smembers(setPoint)) {
-                if (cfClient.cfExists(possibleGisJion, entryPoint)) {
+                debug.append("tried ").append(possibleGisJion).append("\n");
+                if (cfClient.cfExists(prefix + possibleGisJion, entryPoint)) {
                     return possibleGisJion;
                 }
             }
 
-            return "null";
+            return debug.toString();
         }
     }
 }

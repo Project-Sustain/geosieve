@@ -100,7 +100,7 @@ public class Main {
         job.getConfiguration().set("mapreduce.textoutputformat.separator", "");
 
         FileInputFormat.addInputPath(job, new Path(arguments.<String>get("inputPath")));
-        FileOutputFormat.setOutputPath(job, new Path("/sustain_data/gridmet/combined"));
+        FileOutputFormat.setOutputPath(job, new Path("/sustain_data/gridmet/scaled/combined"));
 
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }

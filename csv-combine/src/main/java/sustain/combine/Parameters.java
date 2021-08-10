@@ -104,7 +104,8 @@ public class Parameters {
         parser.addArgument("-n", "--nodeCount")
                 .metavar("count")
                 .help("How many nodes this job will run on")
-                .required(false);
+                .type(int.class)
+                .setDefault(30);
     }
 
     public static Namespace parse(String[] args) {

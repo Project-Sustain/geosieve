@@ -125,6 +125,11 @@ public class GeosieveTransform implements Transform {
         return lngProperty;
     }
 
+    @JsonProperty
+    public String getPrefix() {
+        return prefix;
+    }
+
     @Override
     public RowFunction getRowFunction() {
         return new BloomLookupRowFunction(redisHost, redisPort, latProperty, lngProperty, prefix);
