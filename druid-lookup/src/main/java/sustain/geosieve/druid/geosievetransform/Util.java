@@ -67,61 +67,20 @@
 
 package sustain.geosieve.druid.geosievetransform;
 
-import io.rebloom.client.Client;
-import org.apache.druid.data.input.Row;
-import org.apache.druid.segment.transform.RowFunction;
-import redis.clients.jedis.Jedis;
-
-public class BloomLookupRowFunction implements RowFunction {
-    private final String lngProperty;
-    private final String latProperty;
-    private final String prefix;
-
-    private static Jedis jClient;
-    private static Client cfClient;
-
-    private static final String SET_NAME_PRECISION = "__snprecision";
-    private static final String FILTER_ENTRY_PRECISION = "__feprecision";
-    private static final String LOOKUP_FAILED = "null";
-
-    public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix) {
-        this.latProperty = latProperty;
-        this.lngProperty = lngProperty;
-        this.prefix = prefix;
-
-        if (jClient == null) {
-            jClient = new Jedis(redisHost, redisPort);
-        }
-
-        if (cfClient == null) {
-            cfClient = new Client(redisHost, redisPort);
-        }
+public class Util {
+    public static int tryParseOrDefault(String s, int _default) {
+        int result = _default;
+        try {
+            result = Integer.parseInt(s);
+        } catch (NumberFormatException ignored) { }
+        return result;
     }
 
-    public Object eval(final Row row) {
-        synchronized (jClient) {
-            int setNamePrecision = Util.tryParseOrDefault(jClient.get(prefix + SET_NAME_PRECISION), 1);
-            int filterMemberPrecision = Util.tryParseOrDefault(jClient.get(prefix + FILTER_ENTRY_PRECISION), 0);
+    public static String serialize(double lat, double lng, int precision) {
+        return String.format(String.format("%%.%df,%%.%1$df", precision), lng, lat);
+    }
 
-            double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
-            double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
-
-            String setPoint = prefix + Util.serialize(lat, lng, setNamePrecision);
-            String entryPoint = (filterMemberPrecision == 0)
-                    ? Util.serialize(lat, lng)
-                    : Util.serialize(lat, lng, filterMemberPrecision);
-
-            if (!jClient.exists(setPoint)) {
-                return LOOKUP_FAILED;
-            }
-
-            for (String possibleGisJion : jClient.smembers(setPoint)) {
-                if (cfClient.cfExists(prefix + possibleGisJion, entryPoint)) {
-                    return possibleGisJion;
-                }
-            }
-
-            return LOOKUP_FAILED;
-        }
+    public static String serialize(double lat, double lng) {
+        return String.format("%f,%f", lng, lat);
     }
 }
