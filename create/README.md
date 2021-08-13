@@ -1,8 +1,8 @@
-## geosieve-create
+# geosieve-create
 
-`geosieve-create` is a utility for creating bloom filters to more efficiently map lat/long points to GISJOINs. 
+`geosieve-create` is a utility for creating bloom filters to more efficiently map lat/long points to GISJOINs while ingesting gridded datasets.
 
-### Build
+## Build
 
 This is a Maven project that targets Java 8. Run
 ```
@@ -10,9 +10,9 @@ mvn clean package
 ```
 to create an executable jar at `target/create-1.0-jar-with-dependencies.jar`.
 
-Any Java version newer than 8 will probably work since the tool is not extremely complicated, but no guarantees.
+A Java version newer than 8 will probably work since the tool is not extremely complicated, but no guarantees.
 
-### Usage
+## Usage
 
 Run with `java -jar`, as in
 ```
@@ -21,11 +21,11 @@ java -jar create-1.0-jar-with-dependencies.jar -h
 
 The `-h` flag will print a usage screen. Running with no arguments will launch the program with complete default configurations, which is likely not what you want, so be careful.
 
-#### Options
+### Options
 
 The `create` tool essentially needs to know three things: where to find the lat/long points, how to transform lat/long points into GISJOINs, and where to put the resulting filters. The following options for each are currently supported:
 
-##### Point source
+#### Point source
 
 Determines where to get lat/long points. Controlled by the `-s` flag, which can be either `UNIFORM` or `FILE`. Defaults to `UNIFORM`.
 
@@ -38,13 +38,13 @@ Determines where to get lat/long points. Controlled by the `-s` flag, which can 
   * `-n <field name>`: What the name of the longitude property or field is in the input file. Defaults to "longitude".
   * `-f <file1> <file2> ...`: The files to read points from. The type of file is automatically determined by its extension, meaning the extension must be accurate. Defaults to "data.json".
 
-##### GISJOIN source
+#### GISJOIN source
 
 Determines how lat/long points are mapped to GISJOINs. Controlled by the `-j` flag. The only supported option at the moment is `SUSTAIN_MONGO`, which maps lat/lon points by sending `geoIntersects` requests to our MongoDB instance. This has the implication that you must be on the CSU vpn or network.
 
 There are no sub-options.
 
-##### Filter database
+#### Filter database
 
 Determines where the resulting filters and other necessary metadata are output. Controlled by the `-t` flag, which can be either `REDIS` or `FILE`.
 
@@ -53,7 +53,7 @@ Determines where the resulting filters and other necessary metadata are output. 
 * `-t FILE`: This is intended for testing or debugging purposes and is not necessarily feature complete or efficient. The options available when using this source are:
   * `-o <file>`: The file to output to, which will be created if it does not exist. Defaults to `out.txt`.
 
-##### General options
+#### General options
 
 These options control general behavior and are independent of all other options.
 
