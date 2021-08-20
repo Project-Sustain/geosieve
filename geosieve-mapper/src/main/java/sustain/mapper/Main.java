@@ -65,72 +65,28 @@
  * END OF TERMS AND CONDITIONS
  */
 
-package sustain.geosieve.druid.geosievetransform;
+package sustain.mapper;
 
-import io.rebloom.client.Client;
-import org.apache.druid.data.input.Row;
-import org.apache.druid.segment.transform.RowFunction;
-import redis.clients.jedis.Jedis;
+import java.util.ArrayList;
+import java.util.List;
 
-import java.util.HashMap;
+public class Main {
+    public static void main(String[] args) {
+        Arguments.parse(args);
 
-public class BloomLookupRowFunction implements RowFunction {
-    private final String lngProperty;
-    private final String latProperty;
-    private final String prefix;
-
-    private static Jedis jClient;
-    private static Client cfClient;
-
-    private static final String SET_NAME_PRECISION = "__snprecision";
-    private static final String FILTER_ENTRY_PRECISION = "__feprecision";
-    private static final String LOOKUP_FAILED = "null";
-    private static final HashMap<String, String> pointMemo = new HashMap<>();
-
-    public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix) {
-        this.latProperty = latProperty;
-        this.lngProperty = lngProperty;
-        this.prefix = prefix;
-
-        if (jClient == null) {
-            jClient = new Jedis(redisHost, redisPort);
+        List<Thread> workers = new ArrayList<>();
+        for (String file : Arguments.args.<List<String>>get("files")) {
+            workers.add(new RewriteWorker(file));
         }
 
-        if (cfClient == null) {
-            cfClient = new Client(redisHost, redisPort);
+        for (Thread thread : workers) {
+            thread.start();
         }
-    }
 
-    public Object eval(final Row row) {
-        synchronized (jClient) {
-            int setNamePrecision = Util.tryParseOrDefault(jClient.get(prefix + SET_NAME_PRECISION), 1);
-            int filterMemberPrecision = Util.tryParseOrDefault(jClient.get(prefix + FILTER_ENTRY_PRECISION), 0);
-
-            double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
-            double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
-
-            String setPoint = prefix + Util.serialize(lat, lng, setNamePrecision);
-            String entryPoint = (filterMemberPrecision == 0)
-                    ? Util.serialize(lat, lng)
-                    : Util.serialize(lat, lng, filterMemberPrecision);
-
-            String memoizedResult;
-            if ((memoizedResult = pointMemo.getOrDefault(entryPoint, null)) != null) {
-                return memoizedResult;
-            }
-
-            if (!jClient.exists(setPoint)) {
-                return LOOKUP_FAILED;
-            }
-
-            for (String possibleGisJoin : jClient.smembers(setPoint)) {
-                if (cfClient.cfExists(prefix + possibleGisJoin, entryPoint)) {
-                    pointMemo.put(entryPoint, possibleGisJoin);
-                    return possibleGisJoin;
-                }
-            }
-
-            return LOOKUP_FAILED;
+        for (Thread thread : workers) {
+            try {
+                thread.join();
+            } catch (InterruptedException ignored) { }
         }
     }
 }

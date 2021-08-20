@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/create/csv-combine/csv-combine.iml" filepath="$PROJECT_DIR$/create/csv-combine/csv-combine.iml" />
       <module fileurl="file://$PROJECT_DIR$/druid-lookup/druid-geosieve-transform.iml" filepath="$PROJECT_DIR$/druid-lookup/druid-geosieve-transform.iml" />
       <module fileurl="file://$PROJECT_DIR$/create/geosieve.iml" filepath="$PROJECT_DIR$/create/geosieve.iml" />
+      <module fileurl="file://$PROJECT_DIR$/geosieve-mapper/geosieve-mapper.iml" filepath="$PROJECT_DIR$/geosieve-mapper/geosieve-mapper.iml" />
     </modules>
   </component>
 </project>

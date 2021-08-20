@@ -6,15 +6,18 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="geosieve" />
+        <module name="geosieve-mapper" />
         <module name="druid-geosieve-transform" />
         <module name="csv-combine" />
-        <module name="geosieve" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="csv-combine" target="1.8" />
       <module name="druid-geosieve-transform" target="8" />
       <module name="geosieve" target="8" />
+      <module name="geosieve-mapper" target="8" />
+      <module name="mapper" target="8" />
       <module name="nc2json" target="8" />
     </bytecodeTargetLevel>
   </component>

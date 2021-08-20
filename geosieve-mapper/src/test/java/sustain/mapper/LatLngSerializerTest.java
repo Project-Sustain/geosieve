@@ -65,72 +65,49 @@
  * END OF TERMS AND CONDITIONS
  */
 
-package sustain.geosieve.druid.geosievetransform;
+package sustain.mapper;
 
-import io.rebloom.client.Client;
-import org.apache.druid.data.input.Row;
-import org.apache.druid.segment.transform.RowFunction;
-import redis.clients.jedis.Jedis;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.sync.RedisCommands;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class BloomLookupRowFunction implements RowFunction {
-    private final String lngProperty;
-    private final String latProperty;
-    private final String prefix;
+public class LatLngSerializerTest {
+    public static LatLng examplePoint;
 
-    private static Jedis jClient;
-    private static Client cfClient;
-
-    private static final String SET_NAME_PRECISION = "__snprecision";
-    private static final String FILTER_ENTRY_PRECISION = "__feprecision";
-    private static final String LOOKUP_FAILED = "null";
-    private static final HashMap<String, String> pointMemo = new HashMap<>();
-
-    public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix) {
-        this.latProperty = latProperty;
-        this.lngProperty = lngProperty;
-        this.prefix = prefix;
-
-        if (jClient == null) {
-            jClient = new Jedis(redisHost, redisPort);
-        }
-
-        if (cfClient == null) {
-            cfClient = new Client(redisHost, redisPort);
-        }
+    @BeforeAll
+    public static void init() {
+        examplePoint = new LatLng(-93.827221, 80.213345);
     }
 
-    public Object eval(final Row row) {
-        synchronized (jClient) {
-            int setNamePrecision = Util.tryParseOrDefault(jClient.get(prefix + SET_NAME_PRECISION), 1);
-            int filterMemberPrecision = Util.tryParseOrDefault(jClient.get(prefix + FILTER_ENTRY_PRECISION), 0);
+    @Test
+    public void serializeWithZeroPrecision() {
+        LatLngSerializer s = new LatLngSerializer(0, 0);
 
-            double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
-            double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
+        assertEquals(examplePoint.toString(), s.serialize(examplePoint, LatLngSerializer.Context.SET));
+        assertEquals(examplePoint.toString(), s.serialize(examplePoint, LatLngSerializer.Context.ENTRY));
+    }
 
-            String setPoint = prefix + Util.serialize(lat, lng, setNamePrecision);
-            String entryPoint = (filterMemberPrecision == 0)
-                    ? Util.serialize(lat, lng)
-                    : Util.serialize(lat, lng, filterMemberPrecision);
+    @Test
+    public void serializeWithPrecision() {
+        LatLngSerializer s = new LatLngSerializer(4, 6);
 
-            String memoizedResult;
-            if ((memoizedResult = pointMemo.getOrDefault(entryPoint, null)) != null) {
-                return memoizedResult;
-            }
+        assertEquals(examplePoint.toString(4), s.serialize(examplePoint, LatLngSerializer.Context.SET));
+        assertEquals(examplePoint.toString(6), s.serialize(examplePoint, LatLngSerializer.Context.ENTRY));
+    }
 
-            if (!jClient.exists(setPoint)) {
-                return LOOKUP_FAILED;
-            }
+    @Test
+    public void createSerializerFromRedisConnection() {
+        String prefix = "dummyfix";
+        RedisCommands<String, String> c = RedisClient.create("redis://localhost").connect().sync();
+        c.set(prefix + LatLngSerializer.Context.SET.name, "2");
+        c.set(prefix + LatLngSerializer.Context.ENTRY.name, "4");
 
-            for (String possibleGisJoin : jClient.smembers(setPoint)) {
-                if (cfClient.cfExists(prefix + possibleGisJoin, entryPoint)) {
-                    pointMemo.put(entryPoint, possibleGisJoin);
-                    return possibleGisJoin;
-                }
-            }
+        LatLngSerializer s = new LatLngSerializer(c, prefix);
 
-            return LOOKUP_FAILED;
-        }
+        assertEquals(examplePoint.toString(2), s.serialize(examplePoint, LatLngSerializer.Context.SET));
+        assertEquals(examplePoint.toString(4), s.serialize(examplePoint, LatLngSerializer.Context.ENTRY));
     }
 }

@@ -65,72 +65,125 @@
  * END OF TERMS AND CONDITIONS
  */
 
-package sustain.geosieve.druid.geosievetransform;
+package sustain.mapper;
 
-import io.rebloom.client.Client;
-import org.apache.druid.data.input.Row;
-import org.apache.druid.segment.transform.RowFunction;
-import redis.clients.jedis.Jedis;
+import io.lettuce.core.*;
+import io.lettuce.core.api.async.RedisAsyncCommands;
+import io.lettuce.core.api.sync.RedisCommands;
+import io.lettuce.core.codec.RedisCodec;
+import io.lettuce.core.codec.StringCodec;
+import io.lettuce.core.output.BooleanOutput;
+import io.lettuce.core.protocol.CommandArgs;
+import sustain.mapper.util.CfExistsCommand;
+import sustain.mapper.util.Pair;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
-public class BloomLookupRowFunction implements RowFunction {
-    private final String lngProperty;
-    private final String latProperty;
-    private final String prefix;
+public class RedisMapper extends Mapper {
+    public static final int MAX_BUFFERED_COMMANDS = 1_000;
+    public static final RedisCodec<String, String> codec = StringCodec.UTF8;
+    public static final String LOOKUP_FAILED = "null";
 
-    private static Jedis jClient;
-    private static Client cfClient;
+    private final RedisAsyncCommands<String, String> asyncRedis;
+    private final RedisCommands<String, String> syncRedis;
+    private final HashMap<String, String> memo;
+    private final LatLngSerializer serializer;
+    private final List<Pair<RedisFuture<Long>, LatLng>> collected;
+    public final String prefix;
 
-    private static final String SET_NAME_PRECISION = "__snprecision";
-    private static final String FILTER_ENTRY_PRECISION = "__feprecision";
-    private static final String LOOKUP_FAILED = "null";
-    private static final HashMap<String, String> pointMemo = new HashMap<>();
+    public RedisMapper(String host, int port, String prefix, Consumer<List<String>> onFlush) {
+        super(onFlush);
 
-    public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix) {
-        this.latProperty = latProperty;
-        this.lngProperty = lngProperty;
+        asyncRedis = RedisClient.create(host + ":" + port).connect().async();
+        syncRedis = RedisClient.create(host + ":" + port).connect().sync();
+
+        memo = new HashMap<>();
+        serializer = new LatLngSerializer(syncRedis, prefix);
         this.prefix = prefix;
+        this.collected = new ArrayList<>();
 
-        if (jClient == null) {
-            jClient = new Jedis(redisHost, redisPort);
-        }
-
-        if (cfClient == null) {
-            cfClient = new Client(redisHost, redisPort);
-        }
+        asyncRedis.setAutoFlushCommands(false);
     }
 
-    public Object eval(final Row row) {
-        synchronized (jClient) {
-            int setNamePrecision = Util.tryParseOrDefault(jClient.get(prefix + SET_NAME_PRECISION), 1);
-            int filterMemberPrecision = Util.tryParseOrDefault(jClient.get(prefix + FILTER_ENTRY_PRECISION), 0);
+    @Override
+    public void queue(LatLng p) {
+        String setPoint = serializer.serialize(p, LatLngSerializer.Context.SET);
+        collected.add(new Pair<>(asyncRedis.exists(prefix + setPoint), p));
+    }
 
-            double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
-            double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
+    @Override
+    public void flush() {
+        List<Pair<Boolean, LatLng>> setExistenceResults = checkSetExistence(collected);
+        List<Pair<Set<String>, LatLng>> setMembers = getSetMembers(setExistenceResults);
+        List<String> GISJOINs = getGISJOINs(setMembers);
 
-            String setPoint = prefix + Util.serialize(lat, lng, setNamePrecision);
-            String entryPoint = (filterMemberPrecision == 0)
-                    ? Util.serialize(lat, lng)
-                    : Util.serialize(lat, lng, filterMemberPrecision);
+        onFlush.accept(GISJOINs);
+    }
 
-            String memoizedResult;
-            if ((memoizedResult = pointMemo.getOrDefault(entryPoint, null)) != null) {
-                return memoizedResult;
+    private List<Pair<Boolean, LatLng>> checkSetExistence(List<Pair<RedisFuture<Long>, LatLng>> operations) {
+        List<Pair<Boolean, LatLng>> results = new ArrayList<>();
+
+        asyncRedis.flushCommands();
+        for (Pair<RedisFuture<Long>, LatLng> op : operations) {
+            try {
+                results.add(new Pair<>(op.first.get() == 0, op.second));
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return results;
+    }
+
+    private List<Pair<Set<String>, LatLng>> getSetMembers(List<Pair<Boolean, LatLng>> setExistenceResults) {
+        List<Pair<Set<String>, LatLng>> members = new ArrayList<>();
+        List<Pair<RedisFuture<Set<String>>, LatLng>> memberFutures = new ArrayList<>();
+
+        for (Pair<Boolean, LatLng> result : setExistenceResults) {
+            memberFutures.add(new Pair<>(asyncRedis.smembers(prefix + serializer.serialize(result.second, LatLngSerializer.Context.SET)), result.second));
+        }
+
+        asyncRedis.flushCommands();
+        for (Pair<RedisFuture<Set<String>>, LatLng> future : memberFutures) {
+            try {
+                members.add(new Pair<>(future.first.get(), future.second));
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return members;
+    }
+
+    private List<String> getGISJOINs(List<Pair<Set<String>, LatLng>> setMembers) {
+        List<String> GISJOINs = new ArrayList<>();
+
+        for (Pair<Set<String>, LatLng> sets : setMembers) {
+            if (sets.first.isEmpty()) {
+                GISJOINs.add(LOOKUP_FAILED);
+                continue;
             }
 
-            if (!jClient.exists(setPoint)) {
-                return LOOKUP_FAILED;
-            }
-
-            for (String possibleGisJoin : jClient.smembers(setPoint)) {
-                if (cfClient.cfExists(prefix + possibleGisJoin, entryPoint)) {
-                    pointMemo.put(entryPoint, possibleGisJoin);
-                    return possibleGisJoin;
+            for (String possibleGisJoin : sets.first) {
+                if (existsInBloomFilter(prefix + possibleGisJoin, serializer.serialize(sets.second, LatLngSerializer.Context.ENTRY))) {
+                    GISJOINs.add(possibleGisJoin);
+                } else {
+                    GISJOINs.add(LOOKUP_FAILED);
                 }
             }
-
-            return LOOKUP_FAILED;
         }
+
+        return GISJOINs;
+    }
+
+    private boolean existsInBloomFilter(String key, String point) {
+        return syncRedis.dispatch(new CfExistsCommand(),
+                new BooleanOutput<>(codec),
+                new CommandArgs<>(codec).addKey(key).addValue(point));
     }
 }

@@ -65,72 +65,55 @@
  * END OF TERMS AND CONDITIONS
  */
 
-package sustain.geosieve.druid.geosievetransform;
+package sustain.mapper;
 
-import io.rebloom.client.Client;
-import org.apache.druid.data.input.Row;
-import org.apache.druid.segment.transform.RowFunction;
-import redis.clients.jedis.Jedis;
+import net.sourceforge.argparse4j.inf.Namespace;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import sustain.mapper.io.CSVRewriter;
+import sustain.mapper.io.Rewriter;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Map;
 
-public class BloomLookupRowFunction implements RowFunction {
-    private final String lngProperty;
-    private final String latProperty;
-    private final String prefix;
+import static org.junit.jupiter.api.Assertions.*;
 
-    private static Jedis jClient;
-    private static Client cfClient;
+public class CSVRewriterTest {
+    private static TestUtil.RedisPointsFixture fixture;
 
-    private static final String SET_NAME_PRECISION = "__snprecision";
-    private static final String FILTER_ENTRY_PRECISION = "__feprecision";
-    private static final String LOOKUP_FAILED = "null";
-    private static final HashMap<String, String> pointMemo = new HashMap<>();
+    @BeforeAll
+    public static void init() {
+        fixture = new TestUtil.RedisPointsFixture();
+        fixture.writeCSV("src/test/resources/fixturePoints.csv");
 
-    public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix) {
-        this.latProperty = latProperty;
-        this.lngProperty = lngProperty;
-        this.prefix = prefix;
-
-        if (jClient == null) {
-            jClient = new Jedis(redisHost, redisPort);
-        }
-
-        if (cfClient == null) {
-            cfClient = new Client(redisHost, redisPort);
-        }
+        Map<String, Object> map = new HashMap<>();
+        map.put("hostname", "redis://localhost");
+        map.put("port", 6379);
+        map.put("prefix", "dummyfix");
+        map.put("latProperty", "lat");
+        map.put("lngProperty", "lng");
+        Arguments.set(new Namespace(map));
     }
 
-    public Object eval(final Row row) {
-        synchronized (jClient) {
-            int setNamePrecision = Util.tryParseOrDefault(jClient.get(prefix + SET_NAME_PRECISION), 1);
-            int filterMemberPrecision = Util.tryParseOrDefault(jClient.get(prefix + FILTER_ENTRY_PRECISION), 0);
+    @Test
+    public void simpleRewrite() throws IOException {
+        String[] originalLines = Files.lines(Paths.get("src/test/resources/fixturePoints.csv")).toArray(String[]::new);
+        Rewriter r = new CSVRewriter("src/test/resources/fixturePoints.csv");
+        r.rewrite();
+        assertFalse(Files.exists(Paths.get("src/test/resources/fixturePoints.csv")));
 
-            double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
-            double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
+        assertTrue(Files.exists(Paths.get("src/test/resources/joined_fixturePoints.csv")));
+        String[] newLines = Files.lines(Paths.get("src/test/resources/joined_fixturePoints.csv")).toArray(String[]::new);
 
-            String setPoint = prefix + Util.serialize(lat, lng, setNamePrecision);
-            String entryPoint = (filterMemberPrecision == 0)
-                    ? Util.serialize(lat, lng)
-                    : Util.serialize(lat, lng, filterMemberPrecision);
+        assertEquals(originalLines.length, newLines.length);
+        assertEquals("GISJOIN," + originalLines[0], newLines[0]);
 
-            String memoizedResult;
-            if ((memoizedResult = pointMemo.getOrDefault(entryPoint, null)) != null) {
-                return memoizedResult;
-            }
-
-            if (!jClient.exists(setPoint)) {
-                return LOOKUP_FAILED;
-            }
-
-            for (String possibleGisJoin : jClient.smembers(setPoint)) {
-                if (cfClient.cfExists(prefix + possibleGisJoin, entryPoint)) {
-                    pointMemo.put(entryPoint, possibleGisJoin);
-                    return possibleGisJoin;
-                }
-            }
-
-            return LOOKUP_FAILED;
+        for (int i = 1; i < originalLines.length; i++) {
+            String GISJOIN = originalLines[i].split(",")[2];
+            assertEquals(GISJOIN + "," + originalLines[i], newLines[i]);
         }
     }
 }

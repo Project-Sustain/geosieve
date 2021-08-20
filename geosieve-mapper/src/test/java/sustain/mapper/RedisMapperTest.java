@@ -65,72 +65,58 @@
  * END OF TERMS AND CONDITIONS
  */
 
-package sustain.geosieve.druid.geosievetransform;
+package sustain.mapper;
 
-import io.rebloom.client.Client;
-import org.apache.druid.data.input.Row;
-import org.apache.druid.segment.transform.RowFunction;
-import redis.clients.jedis.Jedis;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.sync.RedisCommands;
+import io.lettuce.core.codec.StringCodec;
+import io.lettuce.core.output.IntegerOutput;
+import io.lettuce.core.protocol.CommandArgs;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import sustain.mapper.util.CfAddCommand;
+import sustain.mapper.util.Pair;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-public class BloomLookupRowFunction implements RowFunction {
-    private final String lngProperty;
-    private final String latProperty;
-    private final String prefix;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-    private static Jedis jClient;
-    private static Client cfClient;
+public class RedisMapperTest {
+    private static TestUtil.RedisPointsFixture fixture;
 
-    private static final String SET_NAME_PRECISION = "__snprecision";
-    private static final String FILTER_ENTRY_PRECISION = "__feprecision";
-    private static final String LOOKUP_FAILED = "null";
-    private static final HashMap<String, String> pointMemo = new HashMap<>();
-
-    public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix) {
-        this.latProperty = latProperty;
-        this.lngProperty = lngProperty;
-        this.prefix = prefix;
-
-        if (jClient == null) {
-            jClient = new Jedis(redisHost, redisPort);
-        }
-
-        if (cfClient == null) {
-            cfClient = new Client(redisHost, redisPort);
-        }
+    @BeforeAll
+    public static void init() {
+        fixture = new TestUtil.RedisPointsFixture();
     }
 
-    public Object eval(final Row row) {
-        synchronized (jClient) {
-            int setNamePrecision = Util.tryParseOrDefault(jClient.get(prefix + SET_NAME_PRECISION), 1);
-            int filterMemberPrecision = Util.tryParseOrDefault(jClient.get(prefix + FILTER_ENTRY_PRECISION), 0);
+    @Test
+    public void testBasicMapping() {
+        List<String> GISJOINs = new ArrayList<>();
+        RedisMapper mapper = new RedisMapper("redis://localhost", 6379, "dummyfix", GISJOINs::addAll);
 
-            double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
-            double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
-
-            String setPoint = prefix + Util.serialize(lat, lng, setNamePrecision);
-            String entryPoint = (filterMemberPrecision == 0)
-                    ? Util.serialize(lat, lng)
-                    : Util.serialize(lat, lng, filterMemberPrecision);
-
-            String memoizedResult;
-            if ((memoizedResult = pointMemo.getOrDefault(entryPoint, null)) != null) {
-                return memoizedResult;
-            }
-
-            if (!jClient.exists(setPoint)) {
-                return LOOKUP_FAILED;
-            }
-
-            for (String possibleGisJoin : jClient.smembers(setPoint)) {
-                if (cfClient.cfExists(prefix + possibleGisJoin, entryPoint)) {
-                    pointMemo.put(entryPoint, possibleGisJoin);
-                    return possibleGisJoin;
-                }
-            }
-
-            return LOOKUP_FAILED;
+        for (Pair<LatLng, String> pair : fixture.points) {
+            mapper.queue(pair.first);
         }
+
+        mapper.flush();
+
+        assertEquals(Arrays.asList("G10", "G10", "G10", "G10", "G20", "G20", "G20", "G30"), GISJOINs);
     }
+
+    @Test
+    public void badPointsMapToNull() {
+        List<String> GISJOINs = new ArrayList<>();
+        RedisMapper mapper = new RedisMapper("redis://localhost", 6379, "dummyfix", GISJOINs::addAll);
+
+        mapper.queue(new LatLng(0, 0));
+        mapper.queue(new LatLng(8.043, -73.2));
+        mapper.queue(fixture.points.get(0).first);
+
+        mapper.flush();
+
+        assertEquals(Arrays.asList("null", "null", "G10"), GISJOINs);
+    }
+
 }

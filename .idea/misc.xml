@@ -7,6 +7,7 @@
         <option value="$PROJECT_DIR$/druid-lookup/pom.xml" />
         <option value="$PROJECT_DIR$/nc2json/pom.xml" />
         <option value="$PROJECT_DIR$/csv-combine/pom.xml" />
+        <option value="$PROJECT_DIR$/geosieve-mapper/pom.xml" />
       </list>
     </option>
   </component>

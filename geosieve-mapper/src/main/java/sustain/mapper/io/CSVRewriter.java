@@ -65,72 +65,103 @@
  * END OF TERMS AND CONDITIONS
  */
 
-package sustain.geosieve.druid.geosievetransform;
+package sustain.mapper.io;
 
-import io.rebloom.client.Client;
-import org.apache.druid.data.input.Row;
-import org.apache.druid.segment.transform.RowFunction;
-import redis.clients.jedis.Jedis;
+import sustain.mapper.Arguments;
+import sustain.mapper.LatLng;
+import sustain.mapper.Mapper;
+import sustain.mapper.RedisMapper;
+import sustain.mapper.util.Pair;
 
-import java.util.HashMap;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
-public class BloomLookupRowFunction implements RowFunction {
-    private final String lngProperty;
-    private final String latProperty;
-    private final String prefix;
+public class CSVRewriter extends Rewriter {
+    private final List<String> collectedLines;
+    private final Pair<Integer, Integer> lngLatIndicies;
+    private final String header;
 
-    private static Jedis jClient;
-    private static Client cfClient;
+    public CSVRewriter(String filename) {
+        super(filename);
 
-    private static final String SET_NAME_PRECISION = "__snprecision";
-    private static final String FILTER_ENTRY_PRECISION = "__feprecision";
-    private static final String LOOKUP_FAILED = "null";
-    private static final HashMap<String, String> pointMemo = new HashMap<>();
+        collectedLines = new ArrayList<>();
+        header = getHeader();
+        lngLatIndicies = getIndices(header);
+    }
 
-    public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix) {
-        this.latProperty = latProperty;
-        this.lngProperty = lngProperty;
-        this.prefix = prefix;
+    private String getHeader() {
+        try {
+            return input.readLine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+}
 
-        if (jClient == null) {
-            jClient = new Jedis(redisHost, redisPort);
+    private Pair<Integer, Integer> getIndices(String header) {
+        List<String> cols = Arrays.asList(header.split(","));
+
+        int lngIndex = cols.indexOf(Arguments.args.<String>get("lngProperty"));
+        int latIndex = cols.indexOf(Arguments.args.<String>get("latProperty"));
+
+        if (lngIndex == -1) {
+            throw new RuntimeException("Longitude property was not found");
         }
 
-        if (cfClient == null) {
-            cfClient = new Client(redisHost, redisPort);
+        if (latIndex == -1) {
+            throw new RuntimeException("Latitude property was not found");
+        }
+
+        return new Pair<>(lngIndex, latIndex);
+    }
+
+    @Override
+    public void rewrite() {
+        try {
+            output.write("GISJOIN," + header + System.lineSeparator());
+            input.lines().forEach((String line) -> {
+                collectedLines.add(line);
+                mapper.queue(extract(line));
+            });
+
+            mapper.flush();
+
+            output.close();
+            input.close();
+            Files.delete(Paths.get(inputFilename));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public Object eval(final Row row) {
-        synchronized (jClient) {
-            int setNamePrecision = Util.tryParseOrDefault(jClient.get(prefix + SET_NAME_PRECISION), 1);
-            int filterMemberPrecision = Util.tryParseOrDefault(jClient.get(prefix + FILTER_ENTRY_PRECISION), 0);
+    public LatLng extract(String line) {
+        String[] splits = line.split(",");
+        return new LatLng(Double.parseDouble(splits[lngLatIndicies.first]),
+                Double.parseDouble(splits[lngLatIndicies.second]));
+    }
 
-            double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
-            double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
-
-            String setPoint = prefix + Util.serialize(lat, lng, setNamePrecision);
-            String entryPoint = (filterMemberPrecision == 0)
-                    ? Util.serialize(lat, lng)
-                    : Util.serialize(lat, lng, filterMemberPrecision);
-
-            String memoizedResult;
-            if ((memoizedResult = pointMemo.getOrDefault(entryPoint, null)) != null) {
-                return memoizedResult;
-            }
-
-            if (!jClient.exists(setPoint)) {
-                return LOOKUP_FAILED;
-            }
-
-            for (String possibleGisJoin : jClient.smembers(setPoint)) {
-                if (cfClient.cfExists(prefix + possibleGisJoin, entryPoint)) {
-                    pointMemo.put(entryPoint, possibleGisJoin);
-                    return possibleGisJoin;
+    @Override
+    public Mapper makeMapper(Reader in, Writer out) {
+        Consumer<List<String>> flushFn = (List<String> GISJOINs) -> {
+            try {
+                for (int i = 0; i < GISJOINs.size(); i++) {
+                    out.write(GISJOINs.get(i) + "," + collectedLines.get(i) + System.lineSeparator());
                 }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
+        };
 
-            return LOOKUP_FAILED;
-        }
+        return new RedisMapper(Arguments.args.get("hostname"),
+                Arguments.args.get("port"),
+                Arguments.args.get("prefix"),
+                flushFn);
     }
 }

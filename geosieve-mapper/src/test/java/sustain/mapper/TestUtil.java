@@ -65,72 +65,71 @@
  * END OF TERMS AND CONDITIONS
  */
 
-package sustain.geosieve.druid.geosievetransform;
+package sustain.mapper;
 
-import io.rebloom.client.Client;
-import org.apache.druid.data.input.Row;
-import org.apache.druid.segment.transform.RowFunction;
-import redis.clients.jedis.Jedis;
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.sync.RedisCommands;
+import io.lettuce.core.codec.StringCodec;
+import io.lettuce.core.output.IntegerOutput;
+import io.lettuce.core.protocol.CommandArgs;
+import org.junit.jupiter.api.BeforeAll;
+import sustain.mapper.util.CfAddCommand;
+import sustain.mapper.util.Pair;
 
-import java.util.HashMap;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
-public class BloomLookupRowFunction implements RowFunction {
-    private final String lngProperty;
-    private final String latProperty;
-    private final String prefix;
+public class TestUtil {
+    public static class RedisPointsFixture {
+        public RedisCommands<String, String> sync;
+        public List<Pair<LatLng, String>> points;
 
-    private static Jedis jClient;
-    private static Client cfClient;
+        public RedisPointsFixture() {
+            points = new ArrayList<>();
+            points.add(new Pair<>(new LatLng(1.12145, 1.12145), "G10"));
+            points.add(new Pair<>(new LatLng(1.12245, 1.12245), "G10"));
+            points.add(new Pair<>(new LatLng(1.12345, 1.12345), "G10"));
+            points.add(new Pair<>(new LatLng(1.12445, 1.12445), "G10"));
+            points.add(new Pair<>(new LatLng(2.12145, 2.12145), "G20"));
+            points.add(new Pair<>(new LatLng(2.12245, 2.12245), "G20"));
+            points.add(new Pair<>(new LatLng(2.12345, 2.12345), "G20"));
+            points.add(new Pair<>(new LatLng(3.12345, 3.12345), "G30"));
 
-    private static final String SET_NAME_PRECISION = "__snprecision";
-    private static final String FILTER_ENTRY_PRECISION = "__feprecision";
-    private static final String LOOKUP_FAILED = "null";
-    private static final HashMap<String, String> pointMemo = new HashMap<>();
+            String prefix = "dummyfix";
+            LatLngSerializer sr = new LatLngSerializer(2, 4);
+            sync = RedisClient.create("redis://localhost").connect().sync();
 
-    public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix) {
-        this.latProperty = latProperty;
-        this.lngProperty = lngProperty;
-        this.prefix = prefix;
-
-        if (jClient == null) {
-            jClient = new Jedis(redisHost, redisPort);
-        }
-
-        if (cfClient == null) {
-            cfClient = new Client(redisHost, redisPort);
-        }
-    }
-
-    public Object eval(final Row row) {
-        synchronized (jClient) {
-            int setNamePrecision = Util.tryParseOrDefault(jClient.get(prefix + SET_NAME_PRECISION), 1);
-            int filterMemberPrecision = Util.tryParseOrDefault(jClient.get(prefix + FILTER_ENTRY_PRECISION), 0);
-
-            double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
-            double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
-
-            String setPoint = prefix + Util.serialize(lat, lng, setNamePrecision);
-            String entryPoint = (filterMemberPrecision == 0)
-                    ? Util.serialize(lat, lng)
-                    : Util.serialize(lat, lng, filterMemberPrecision);
-
-            String memoizedResult;
-            if ((memoizedResult = pointMemo.getOrDefault(entryPoint, null)) != null) {
-                return memoizedResult;
+            for (Pair<LatLng, String> pair : points) {
+                sync.sadd(prefix + sr.serialize(pair.first, LatLngSerializer.Context.SET), pair.second);
+                cfadd(prefix + pair.second, sr.serialize(pair.first, LatLngSerializer.Context.ENTRY));
             }
 
-            if (!jClient.exists(setPoint)) {
-                return LOOKUP_FAILED;
-            }
+        }
 
-            for (String possibleGisJoin : jClient.smembers(setPoint)) {
-                if (cfClient.cfExists(prefix + possibleGisJoin, entryPoint)) {
-                    pointMemo.put(entryPoint, possibleGisJoin);
-                    return possibleGisJoin;
+        private void cfadd(String key, String value) {
+            sync.dispatch(new CfAddCommand(),
+                    new IntegerOutput<>(StringCodec.UTF8),
+                    new CommandArgs<>(StringCodec.UTF8).addKey(key).addValue(value));
+        }
+
+        public void writeCSV(String path) {
+            try {
+                if (!Files.exists(Paths.get(path))) {
+                    BufferedWriter csvOut = Files.newBufferedWriter(Paths.get(path));
+                    csvOut.write("lng,lat,expected_gisjoin" + System.lineSeparator());
+                    for (Pair<LatLng, String> point : points) {
+                        csvOut.write(point.first.toString() + "," + point.second + System.lineSeparator());
+                    }
+                    csvOut.close();
                 }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-
-            return LOOKUP_FAILED;
         }
     }
 }
