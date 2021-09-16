@@ -67,15 +67,20 @@
 
 package sustain.mapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
+    public static final Logger logger = LoggerFactory.getLogger(Main.class);
+
     public static void main(String[] args) {
-        Arguments.parse(args);
+        Parameters.parse(args);
 
         List<Thread> workers = new ArrayList<>();
-        for (String file : Arguments.args.<List<String>>get("files")) {
+        for (String file : Parameters.args.<List<String>>get("files")) {
             workers.add(new RewriteWorker(file));
         }
 

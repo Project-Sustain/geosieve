@@ -67,9 +67,12 @@
 
 package sustain.mapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sustain.mapper.io.CSVRewriter;
 
 public class RewriteWorker extends Thread {
+    public static final Logger logger = LoggerFactory.getLogger(RewriteWorker.class);
     public final String filename;
 
     public RewriteWorker(String filename) {
@@ -78,6 +81,7 @@ public class RewriteWorker extends Thread {
 
     @Override
     public void run() {
+        logger.info("Rewriting file {}", filename);
         CSVRewriter r = new CSVRewriter(filename);
         r.rewrite();
     }

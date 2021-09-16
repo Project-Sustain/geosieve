@@ -80,7 +80,7 @@ public abstract class Rewriter {
     protected BufferedWriter output;
     protected Mapper mapper;
     protected String inputFilename;
-    private Function<String, String> filenameRewriteRule = (String fn) -> {
+    private final Function<String, String> filenameRewriteRule = (String fn) -> {
         String[] splits = fn.split("/");
         splits[splits.length - 1] = "joined_" + splits[splits.length - 1];
         return String.join("/", splits);

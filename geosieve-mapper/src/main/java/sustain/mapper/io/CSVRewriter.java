@@ -67,10 +67,9 @@
 
 package sustain.mapper.io;
 
-import sustain.mapper.Arguments;
-import sustain.mapper.LatLng;
-import sustain.mapper.Mapper;
-import sustain.mapper.RedisMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import sustain.mapper.*;
 import sustain.mapper.util.Pair;
 
 import java.io.IOException;
@@ -82,9 +81,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 public class CSVRewriter extends Rewriter {
+    public static final Logger logger = LoggerFactory.getLogger(CSVRewriter.class);
     private final List<String> collectedLines;
     private final Pair<Integer, Integer> lngLatIndicies;
     private final String header;
@@ -108,8 +107,8 @@ public class CSVRewriter extends Rewriter {
     private Pair<Integer, Integer> getIndices(String header) {
         List<String> cols = Arrays.asList(header.split(","));
 
-        int lngIndex = cols.indexOf(Arguments.args.<String>get("lngProperty"));
-        int latIndex = cols.indexOf(Arguments.args.<String>get("latProperty"));
+        int lngIndex = cols.indexOf(Parameters.args.<String>get("lngProperty"));
+        int latIndex = cols.indexOf(Parameters.args.<String>get("latProperty"));
 
         if (lngIndex == -1) {
             throw new RuntimeException("Longitude property was not found");
@@ -127,10 +126,12 @@ public class CSVRewriter extends Rewriter {
         try {
             output.write("GISJOIN," + header + System.lineSeparator());
             input.lines().forEach((String line) -> {
+                LatLng point = extract(line);
                 collectedLines.add(line);
-                mapper.queue(extract(line));
+                mapper.queue(point);
             });
 
+            logger.info("Flushing mapper");
             mapper.flush();
 
             output.close();
@@ -159,9 +160,9 @@ public class CSVRewriter extends Rewriter {
             }
         };
 
-        return new RedisMapper(Arguments.args.get("hostname"),
-                Arguments.args.get("port"),
-                Arguments.args.get("prefix"),
+        return new RedisMapper(Parameters.args.get("hostname"),
+                Parameters.args.get("port"),
+                Parameters.args.get("prefix"),
                 flushFn);
     }
 }

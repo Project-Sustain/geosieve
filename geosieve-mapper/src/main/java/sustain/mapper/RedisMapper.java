@@ -74,26 +74,27 @@ import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.codec.StringCodec;
 import io.lettuce.core.output.BooleanOutput;
 import io.lettuce.core.protocol.CommandArgs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sustain.mapper.util.CfExistsCommand;
 import sustain.mapper.util.Pair;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class RedisMapper extends Mapper {
-    public static final int MAX_BUFFERED_COMMANDS = 1_000;
+    public static final Logger logger = LoggerFactory.getLogger(RedisMapper.class);
+    public static final int MAX_BUFFERED_COMMANDS = 10_000;
     public static final RedisCodec<String, String> codec = StringCodec.UTF8;
     public static final String LOOKUP_FAILED = "null";
 
     private final RedisAsyncCommands<String, String> asyncRedis;
     private final RedisCommands<String, String> syncRedis;
-    private final HashMap<String, String> memo;
     private final LatLngSerializer serializer;
     private final List<Pair<RedisFuture<Long>, LatLng>> collected;
+    private final Map<LatLng, String> lookupCache;
     public final String prefix;
 
     public RedisMapper(String host, int port, String prefix, Consumer<List<String>> onFlush) {
@@ -102,10 +103,10 @@ public class RedisMapper extends Mapper {
         asyncRedis = RedisClient.create(host + ":" + port).connect().async();
         syncRedis = RedisClient.create(host + ":" + port).connect().sync();
 
-        memo = new HashMap<>();
         serializer = new LatLngSerializer(syncRedis, prefix);
         this.prefix = prefix;
         this.collected = new ArrayList<>();
+        this.lookupCache = new HashMap<>();
 
         asyncRedis.setAutoFlushCommands(false);
     }
@@ -114,6 +115,11 @@ public class RedisMapper extends Mapper {
     public void queue(LatLng p) {
         String setPoint = serializer.serialize(p, LatLngSerializer.Context.SET);
         collected.add(new Pair<>(asyncRedis.exists(prefix + setPoint), p));
+
+        if (collected.size() > MAX_BUFFERED_COMMANDS) {
+            flush();
+            collected.clear();
+        }
     }
 
     @Override
@@ -130,6 +136,11 @@ public class RedisMapper extends Mapper {
 
         asyncRedis.flushCommands();
         for (Pair<RedisFuture<Long>, LatLng> op : operations) {
+            if (lookupCache.containsKey(op.second)) {
+                results.add(new Pair<>(null, op.second));
+                continue;
+            }
+
             try {
                 results.add(new Pair<>(op.first.get() == 0, op.second));
             } catch (InterruptedException | ExecutionException e) {
@@ -145,11 +156,21 @@ public class RedisMapper extends Mapper {
         List<Pair<RedisFuture<Set<String>>, LatLng>> memberFutures = new ArrayList<>();
 
         for (Pair<Boolean, LatLng> result : setExistenceResults) {
+            if (result.first == null) {
+                memberFutures.add(new Pair<>(null, result.second));
+                continue;
+            }
+
             memberFutures.add(new Pair<>(asyncRedis.smembers(prefix + serializer.serialize(result.second, LatLngSerializer.Context.SET)), result.second));
         }
 
         asyncRedis.flushCommands();
         for (Pair<RedisFuture<Set<String>>, LatLng> future : memberFutures) {
+            if (future.first == null) {
+                members.add(new Pair<>(null, future.second));
+                continue;
+            }
+
             try {
                 members.add(new Pair<>(future.first.get(), future.second));
             } catch (InterruptedException | ExecutionException e) {
@@ -164,17 +185,28 @@ public class RedisMapper extends Mapper {
         List<String> GISJOINs = new ArrayList<>();
 
         for (Pair<Set<String>, LatLng> sets : setMembers) {
+            if (sets.first == null) {
+                GISJOINs.add(lookupCache.get(sets.second));
+                continue;
+            }
+
             if (sets.first.isEmpty()) {
                 GISJOINs.add(LOOKUP_FAILED);
                 continue;
             }
 
+            boolean found = false;
             for (String possibleGisJoin : sets.first) {
                 if (existsInBloomFilter(prefix + possibleGisJoin, serializer.serialize(sets.second, LatLngSerializer.Context.ENTRY))) {
                     GISJOINs.add(possibleGisJoin);
-                } else {
-                    GISJOINs.add(LOOKUP_FAILED);
+                    found = true;
+                    lookupCache.put(sets.second, possibleGisJoin);
+                    break;
                 }
+            }
+
+            if (!found) {
+                GISJOINs.add(LOOKUP_FAILED);
             }
         }
 

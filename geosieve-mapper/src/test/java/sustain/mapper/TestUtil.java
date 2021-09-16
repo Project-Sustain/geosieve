@@ -107,6 +107,8 @@ public class TestUtil {
                 cfadd(prefix + pair.second, sr.serialize(pair.first, LatLngSerializer.Context.ENTRY));
             }
 
+            sync.set(prefix + LatLngSerializer.Context.SET.name, "2");
+            sync.set(prefix + LatLngSerializer.Context.ENTRY.name, "4");
         }
 
         private void cfadd(String key, String value) {

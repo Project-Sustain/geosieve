@@ -95,7 +95,7 @@ public class CSVRewriterTest {
         map.put("prefix", "dummyfix");
         map.put("latProperty", "lat");
         map.put("lngProperty", "lng");
-        Arguments.set(new Namespace(map));
+        Parameters.set(new Namespace(map));
     }
 
     @Test
