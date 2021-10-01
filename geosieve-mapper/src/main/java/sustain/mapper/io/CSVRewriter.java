@@ -98,9 +98,13 @@ public class CSVRewriter extends Rewriter {
 
     private String getHeader() {
         try {
-            return input.readLine();
+            String header = input.readLine();
+            if (header.isEmpty()) {
+                throw new RewriteException("File was empty");
+            }
+            return header;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RewriteException(e);
         }
     }
 
@@ -111,11 +115,11 @@ public class CSVRewriter extends Rewriter {
         int latIndex = cols.indexOf(Parameters.args.<String>get("latProperty"));
 
         if (lngIndex == -1) {
-            throw new RuntimeException("Longitude property was not found");
+            throw new RewriteException("Longitude property was not found");
         }
 
         if (latIndex == -1) {
-            throw new RuntimeException("Latitude property was not found");
+            throw new RewriteException("Latitude property was not found");
         }
 
         return new Pair<>(lngIndex, latIndex);
@@ -138,7 +142,7 @@ public class CSVRewriter extends Rewriter {
             input.close();
             Files.delete(Paths.get(inputFilename));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RewriteException(e);
         }
     }
 
@@ -156,7 +160,7 @@ public class CSVRewriter extends Rewriter {
                     out.write(GISJOINs.get(i) + "," + collectedLines.get(i) + System.lineSeparator());
                 }
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new RewriteException(e);
             }
         };
 

@@ -65,30 +65,26 @@
  * END OF TERMS AND CONDITIONS
  */
 
-package sustain.mapper;
+package sustain.mapper.io;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import sustain.mapper.io.CSVRewriter;
-import sustain.mapper.io.RewriteException;
-
-public class RewriteWorker extends Thread {
-    public static final Logger logger = LoggerFactory.getLogger(RewriteWorker.class);
-    public final String filename;
-
-    public RewriteWorker(String filename) {
-        this.filename = filename;
+public class RewriteException extends RuntimeException {
+    RewriteException(String message) {
+        super(message);
     }
 
-    @Override
-    public void run() {
-        logger.info("Rewriting file {}", filename);
-        CSVRewriter r = new CSVRewriter(filename);
+    public RewriteException() {
+        super();
+    }
 
-        try {
-            r.rewrite();
-        } catch (RewriteException e) {
-            logger.error("Failed to rewrite {}: ", filename, e);
-        }
+    public RewriteException(String s, Throwable throwable) {
+        super(s, throwable);
+    }
+
+    public RewriteException(Throwable throwable) {
+        super(throwable);
+    }
+
+    protected RewriteException(String s, Throwable throwable, boolean b, boolean b1) {
+        super(s, throwable, b, b1);
     }
 }
