@@ -102,7 +102,7 @@ public class CSVRewriter extends Rewriter {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-}
+    }
 
     private Pair<Integer, Integer> getIndices(String header) {
         List<String> cols = Arrays.asList(header.split(","));
