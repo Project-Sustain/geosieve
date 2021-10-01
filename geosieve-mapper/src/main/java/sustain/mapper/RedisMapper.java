@@ -113,10 +113,12 @@ public class RedisMapper extends Mapper {
 
     @Override
     public void queue(LatLng p) {
+        logger.info("Queuing {}", p);
         String setPoint = serializer.serialize(p, LatLngSerializer.Context.SET);
         collected.add(new Pair<>(asyncRedis.exists(prefix + setPoint), p));
 
         if (collected.size() > MAX_BUFFERED_COMMANDS) {
+            logger.info("Flushing...");
             flush();
             collected.clear();
         }

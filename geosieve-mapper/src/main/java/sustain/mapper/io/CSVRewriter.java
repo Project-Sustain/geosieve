@@ -99,7 +99,7 @@ public class CSVRewriter extends Rewriter {
     private String getHeader() {
         try {
             String header = input.readLine();
-            if (header.isEmpty()) {
+            if (header == null || header.isEmpty()) {
                 throw new RewriteException("File was empty");
             }
             return header;
