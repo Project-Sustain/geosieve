@@ -81,13 +81,15 @@ public class ParametersTest {
         Namespace n = Parameters.parse(new String[] { "-s", "time", "lat", "lon",
                 "-o", "time", "lat", "lon", "alpha", "beta", "gamma",
                 "-p", "dataset_(.+)",
-                "-i", "/data/*"
+                "-i", "/data/*",
+                "-u", "/data/combined/"
         });
 
         assertEquals(Arrays.asList("time", "lat", "lon"), n.get("sharedCols"));
         assertEquals(Arrays.asList("time", "lat", "lon", "alpha", "beta", "gamma"), n.get("outputCols"));
         assertEquals("dataset_(.+)", n.get("filenamePattern"));
         assertEquals("/data/*", n.get("inputPath"));
+        assertEquals("/data/combined/", n.get("outputPath"));
     }
 
     @Test
@@ -96,5 +98,6 @@ public class ParametersTest {
         assertThrows(RuntimeException.class, () -> Parameters.parse(new String[] { "-s", "time" }));
         assertThrows(RuntimeException.class, () -> Parameters.parse(new String[] { "-s", "time", "-o", "time" }));
         assertThrows(RuntimeException.class, () -> Parameters.parse(new String[] { "-s", "time", "-o", "time", "-p", "pattern" }));
+        assertThrows(RuntimeException.class, () -> Parameters.parse(new String[] { "-s", "time", "-o", "time", "-p", "pattern", "-i", "/data" }));
     }
 }

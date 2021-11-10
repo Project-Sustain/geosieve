@@ -101,6 +101,10 @@ public class Parameters {
                 .metavar("path")
                 .help("Where to get input CSVs from")
                 .required(true);
+        parser.addArgument("-u", "--outputPath")
+                .metavar("path")
+                .help("Where to put resulting combined files")
+                .required(true);
         parser.addArgument("-n", "--nodeCount")
                 .metavar("count")
                 .help("How many nodes this job will run on")
