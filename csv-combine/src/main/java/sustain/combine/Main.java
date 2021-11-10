@@ -81,8 +81,6 @@ import java.util.regex.Pattern;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        args = Arrays.copyOfRange(args, 1, args.length);
-
         Namespace arguments = Parameters.parse(args);
 
         Configuration conf = new Configuration();
