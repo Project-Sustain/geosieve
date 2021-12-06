@@ -109,6 +109,7 @@ public class Parameters {
         defaultParameters.put("files", Collections.singletonList("data.json"));
         defaultParameters.put("filterOutputFile", "./out.txt");
         defaultParameters.put("keyPrefix", "_");
+        defaultParameters.put("clusterMode", false);
         defaults = Collections.unmodifiableMap(defaultParameters);
 
         parser = ArgumentParsers.newFor("Geosieve").build()
@@ -159,6 +160,10 @@ public class Parameters {
                 .help("With REDIS dbTpe, add this prefix to the beginning of each key put into the database")
                 .setDefault(defaults.get("entryPrefix"))
                 .type(String.class);
+        parser.addArgument("-r", "--clusterMode")
+                .help("With REDIS dbType, use a redis cluster")
+                .setDefault(defaults.get("clusterMode"))
+                .type(boolean.class);
     }
 
     public static Namespace parse(String[] args) {

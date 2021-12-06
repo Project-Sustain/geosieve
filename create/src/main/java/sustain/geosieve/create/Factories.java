@@ -75,7 +75,7 @@ public class Factories {
     public static GeosieveDatabase getFilters(Namespace params) {
         switch (params.<Parameters.DatabaseDestination>get("dbType")) {
             default: case REDIS: {
-                return new RedisFilterDatabase("localhost", 6379, params.get("keyPrefix"));
+                return new RedisFilterDatabase("localhost", 6379, params.get("keyPrefix"), params.get("clusterMode"));
             }
         }
     }
