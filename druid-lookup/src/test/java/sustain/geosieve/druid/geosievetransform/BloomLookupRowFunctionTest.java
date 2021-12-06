@@ -67,16 +67,19 @@
 
 package sustain.geosieve.druid.geosievetransform;
 
-import io.rebloom.client.Client;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.cluster.RedisClusterClient;
+import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
+import io.lettuce.core.codec.StringCodec;
+import io.lettuce.core.output.IntegerOutput;
+import io.lettuce.core.protocol.CommandArgs;
+import io.lettuce.core.protocol.ProtocolKeyword;
 import org.apache.druid.data.input.Row;
 import org.apache.druid.segment.transform.RowFunction;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -88,46 +91,53 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BloomLookupRowFunctionTest {
-    private static JedisPool jPool;
+    private static RedisClusterCommands<String, String> commands;
     private static Row fakeRow;
 
-    private static class Clients {
-        public Jedis jClient;
-        public Client cfClient;
+    public static class CfAddCommand implements ProtocolKeyword {
+        public static final String NAME = "CF.ADD";
+
+        @Override
+        public byte[] getBytes() {
+            return NAME.getBytes();
+        }
+
+        @Override
+        public String name() {
+            return NAME;
+        }
     }
 
     @BeforeAll
     public static void setupRedis() {
-        jPool = new JedisPool(new JedisPoolConfig(), "localhost");
-
-        Clients c = getClients();
-
-        addEntries("", c);
-        addEntries("__test_prefix_", c);
+        commands = RedisClient.create("redis://localhost:6379").connect().sync();
+        addEntries("", commands);
+        addEntries("__test_prefix_", commands);
     }
 
-    private static void addEntries(String prefix, Clients c) {
-        c.jClient.set(prefix + "__snprecision", "1");
-        c.jClient.set(prefix + "__feprecision", "3");
-        c.jClient.sadd(prefix + "-107.2,40.5", "G01");
-        c.jClient.sadd(prefix + "-107.2,40.5", "G02");
-        c.jClient.sadd(prefix + "-107.2,40.5", "G03");
-        c.jClient.sadd(prefix + "-101.8,30.7", "G04");
-        c.cfClient.cfAdd(prefix + "G01", "-107.212,40.512");
-        c.cfClient.cfAdd(prefix + "G01", "-107.215,40.515");
-        c.cfClient.cfAdd(prefix + "G02", "-107.221,40.521");
-        c.cfClient.cfAdd(prefix + "G02", "-107.225,40.525");
-        c.cfClient.cfAdd(prefix + "G03", "-107.231,40.531");
-        c.cfClient.cfAdd(prefix + "G03", "-107.235,40.535");
-        c.cfClient.cfAdd(prefix + "G04", "-101.822,30.731");
+    private static void addEntries(String prefix, RedisClusterCommands<String, String> c) {
+        c.set(prefix + "__snprecision", "1");
+        c.set(prefix + "__feprecision", "3");
+        c.sadd(prefix + "-107.2,40.5", "G01");
+        c.sadd(prefix + "-107.2,40.5", "G02");
+        c.sadd(prefix + "-107.2,40.5", "G03");
+        c.sadd(prefix + "-101.8,30.7", "G04");
+        cfAdd(prefix + "G01", "-107.212,40.512", c);
+        cfAdd(prefix + "G01", "-107.215,40.515", c);
+        cfAdd(prefix + "G02", "-107.221,40.521", c);
+        cfAdd(prefix + "G02", "-107.225,40.525", c);
+        cfAdd(prefix + "G03", "-107.231,40.531", c);
+        cfAdd(prefix + "G03", "-107.235,40.535", c);
+        cfAdd(prefix + "G04", "-101.822,30.731", c);
     }
 
-    private static Clients getClients() {
-        Clients clients = new Clients();
-        clients.jClient = jPool.getResource();
-        clients.cfClient = new Client(jPool);
-
-        return clients;
+    private static void cfAdd(String key, String value, RedisClusterCommands<String, String> c) {
+        c.dispatch(
+            new CfAddCommand(),
+            new IntegerOutput<>(StringCodec.UTF8),
+            new CommandArgs<>(StringCodec.UTF8)
+                .addKey(key)
+                .addValue(value));
     }
 
     @BeforeEach
@@ -218,13 +228,13 @@ public class BloomLookupRowFunctionTest {
 
     @Test
     public void canDoSimpleMappings() {
-        RowFunction fn = new BloomLookupRowFunction("localhost", 6379, "lat", "lng", "");
+        RowFunction fn = new BloomLookupRowFunction("localhost", 6379, "lat", "lng", "", true);
         looseTest(fn);
     }
 
     @Test
     public void canDoMappingWithPrefixes() {
-        RowFunction fn = new BloomLookupRowFunction("localhost", 6379, "lat", "lng", "__test_prefix_");
+        RowFunction fn = new BloomLookupRowFunction("localhost", 6379, "lat", "lng", "__test_prefix_", true);
         looseTest(fn);
     }
 

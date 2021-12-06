@@ -67,10 +67,16 @@
 
 package sustain.geosieve.druid.geosievetransform;
 
-import io.rebloom.client.Client;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.sync.RedisCommands;
+import io.lettuce.core.cluster.RedisClusterClient;
+import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
+import io.lettuce.core.codec.StringCodec;
+import io.lettuce.core.output.IntegerOutput;
+import io.lettuce.core.protocol.CommandArgs;
+import io.lettuce.core.protocol.ProtocolKeyword;
 import org.apache.druid.data.input.Row;
 import org.apache.druid.segment.transform.RowFunction;
-import redis.clients.jedis.Jedis;
 
 import java.util.HashMap;
 
@@ -79,32 +85,47 @@ public class BloomLookupRowFunction implements RowFunction {
     private final String latProperty;
     private final String prefix;
 
-    private static Jedis jClient;
-    private static Client cfClient;
+    private static RedisClusterCommands<String, String> commands;
 
     private static final String SET_NAME_PRECISION = "__snprecision";
     private static final String FILTER_ENTRY_PRECISION = "__feprecision";
     private static final String LOOKUP_FAILED = "null";
     private static final HashMap<String, String> pointMemo = new HashMap<>();
 
+    public static class CfExistsCommand implements ProtocolKeyword {
+        public static final String NAME = "CF.EXISTS";
+
+        @Override
+        public byte[] getBytes() {
+            return NAME.getBytes();
+        }
+
+        @Override
+        public String name() {
+            return NAME;
+        }
+    }
+
     public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix) {
+        this(redisHost, redisPort, latProperty, lngProperty, prefix, false);
+    }
+
+    public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix, boolean noCluster) {
         this.latProperty = latProperty;
         this.lngProperty = lngProperty;
         this.prefix = prefix;
 
-        if (jClient == null) {
-            jClient = new Jedis(redisHost, redisPort);
-        }
-
-        if (cfClient == null) {
-            cfClient = new Client(redisHost, redisPort);
+        if (commands == null && !noCluster) {
+            commands = RedisClusterClient.create(String.format("redis://%s:%d", redisHost, redisPort)).connect().sync();
+        } else if (commands == null) {
+            commands = RedisClient.create(String.format("redis://%s:%d", redisHost, redisPort)).connect().sync();
         }
     }
 
     public Object eval(final Row row) {
-        synchronized (jClient) {
-            int setNamePrecision = Util.tryParseOrDefault(jClient.get(prefix + SET_NAME_PRECISION), 1);
-            int filterMemberPrecision = Util.tryParseOrDefault(jClient.get(prefix + FILTER_ENTRY_PRECISION), 0);
+        synchronized (commands) {
+            int setNamePrecision = Util.tryParseOrDefault(commands.get(prefix + SET_NAME_PRECISION), 1);
+            int filterMemberPrecision = Util.tryParseOrDefault(commands.get(prefix + FILTER_ENTRY_PRECISION), 0);
 
             double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
             double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
@@ -119,12 +140,17 @@ public class BloomLookupRowFunction implements RowFunction {
                 return memoizedResult;
             }
 
-            if (!jClient.exists(setPoint)) {
+            if (commands.exists(setPoint) != 1) {
                 return LOOKUP_FAILED;
             }
 
-            for (String possibleGisJoin : jClient.smembers(setPoint)) {
-                if (cfClient.cfExists(prefix + possibleGisJoin, entryPoint)) {
+            for (String possibleGisJoin : commands.smembers(setPoint)) {
+                if (1 == commands.dispatch(
+                    new CfExistsCommand(),
+                    new IntegerOutput<>(StringCodec.UTF8),
+                    new CommandArgs<>(StringCodec.UTF8)
+                        .addKey(prefix + possibleGisJoin)
+                        .addValue(entryPoint))) {
                     pointMemo.put(entryPoint, possibleGisJoin);
                     return possibleGisJoin;
                 }

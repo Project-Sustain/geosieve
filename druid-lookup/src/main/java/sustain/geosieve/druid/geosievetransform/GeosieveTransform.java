@@ -69,12 +69,8 @@ package sustain.geosieve.druid.geosievetransform;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.rebloom.client.Client;
-import org.apache.druid.guice.annotations.Json;
 import org.apache.druid.segment.transform.RowFunction;
 import org.apache.druid.segment.transform.Transform;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
 
 public class GeosieveTransform implements Transform {
     private final String name;
