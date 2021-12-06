@@ -87,6 +87,7 @@ public class FactoriesTest {
     @Test
     public void getFilterDatabases() {
         params.put("dbType", Parameters.DatabaseDestination.REDIS);
+        params.put("clusterMode", false);
         GeosieveDatabase db = Factories.getFilters(new Namespace(params));
         assertTrue(db instanceof RedisFilterDatabase);
     }
