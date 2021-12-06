@@ -67,48 +67,109 @@
 
 package sustain.geosieve.create;
 
-import io.rebloom.client.Client;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.sync.RedisCommands;
+import io.lettuce.core.cluster.RedisClusterClient;
+import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
+import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
+import io.lettuce.core.codec.StringCodec;
+import io.lettuce.core.output.IntegerOutput;
+import io.lettuce.core.protocol.CommandArgs;
+import io.lettuce.core.protocol.ProtocolKeyword;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
 public class RedisFilterDatabase implements GeosieveDatabase {
+    public static class CfAddCommand implements ProtocolKeyword {
+        public final String NAME = "CF.ADD";
+
+        @Override
+        public byte[] getBytes() {
+            return NAME.getBytes();
+        }
+
+        @Override
+        public String name() {
+            return NAME;
+        }
+    }
+
+    public static class CfExistsCommand implements ProtocolKeyword {
+        public static final String NAME = "CF.EXISTS";
+
+        @Override
+        public byte[] getBytes() {
+            return NAME.getBytes();
+        }
+
+        @Override
+        public String name() {
+            return NAME;
+        }
+    }
+
+    public static class CfDeleteCommand implements ProtocolKeyword {
+        public static final String NAME = "CF.DEL";
+
+        @Override
+        public byte[] getBytes() {
+            return NAME.getBytes();
+        }
+
+        @Override
+        public String name() {
+            return NAME;
+        }
+    }
+
     public static final int DEFAULT_REDIS_PORT = 6379;
     public static final Map<PrecisionContext, String> precisionKeys = new HashMap<>();
-    private static final Map<String, JedisPool> pools = new HashMap<>();
 
     static {
         precisionKeys.put(PrecisionContext.SET_NAME, "__snprecision");
         precisionKeys.put(PrecisionContext.FILTER_ENTRY, "__feprecision");
     }
 
-    private final Jedis jedisClient;
-    private final Client bloomClient;
+    private final boolean clusterMode;
+    private final RedisClient client;
+    private final RedisClusterClient clusterClient;
+    private final RedisCommands<String, String> commands;
+    private final RedisAdvancedClusterCommands<String, String> clusterCommands;
     private Function<LatLng, String> setNameFormatRule;
     private Function<LatLng, String> filterEntryFormatRule;
     private String keyPrefix = "";
 
     public RedisFilterDatabase() {
-        this("localhost", DEFAULT_REDIS_PORT, "");
+        this("localhost", DEFAULT_REDIS_PORT, "", false);
     }
 
     public RedisFilterDatabase(String host) {
-        this(host, DEFAULT_REDIS_PORT, "");
+        this(host, DEFAULT_REDIS_PORT, "", false);
+    }
+
+    public RedisFilterDatabase(String host, boolean clusterMode) {
+        this(host, DEFAULT_REDIS_PORT, "", clusterMode);
     }
 
     public RedisFilterDatabase(String host, int port, String keyPrefix) {
-        if (!pools.containsKey(host)) {
-            JedisPoolConfig conf = new JedisPoolConfig();
-            pools.put(host, new JedisPool(conf, host));
-        }
-        JedisPool pool = pools.get(host);
+        this(host, DEFAULT_REDIS_PORT, keyPrefix, false);
+    }
 
-        jedisClient = pools.get(host).getResource();
-        bloomClient = new Client(pool);
+    public RedisFilterDatabase(String host, int port, String keyPrefix, boolean clusterMode) {
+        this.clusterMode = clusterMode;
+        if (clusterMode) {
+            client = null;
+            commands = null;
+            clusterClient = RedisClusterClient.create(String.format("redis://%s:%d", host, port));
+            clusterCommands = clusterClient.connect().sync();
+        } else {
+            clusterClient = null;
+            clusterCommands = null;
+            client = RedisClient.create(String.format("redis://%s:%d", host, port));
+            commands = client.connect().sync();
+        }
 
         useKeyPrefix(keyPrefix);
 
@@ -116,20 +177,42 @@ public class RedisFilterDatabase implements GeosieveDatabase {
         usePrecision(PrecisionContext.FILTER_ENTRY, 0);
     }
 
+    private RedisClusterCommands<String, String> getCommands() {
+        return clusterMode
+                ? clusterCommands
+                : commands;
+    }
+
     @Override
     public synchronized void add(LatLng point, String gisJoin) {
-        jedisClient.sadd(keyPrefix + setNameFormatRule.apply(point), gisJoin);
-        bloomClient.cfAdd(keyPrefix + gisJoin, filterEntryFormatRule.apply(point));
+        getCommands().sadd(keyPrefix + setNameFormatRule.apply(point), gisJoin);
+        getCommands().dispatch(
+                new CfAddCommand(),
+                new IntegerOutput<>(StringCodec.UTF8),
+                new CommandArgs<>(StringCodec.UTF8)
+                        .addKey(keyPrefix + gisJoin)
+                        .addValue(filterEntryFormatRule.apply(point)));
     }
 
     @Override
     public synchronized boolean contains(LatLng point, String gisJoin) {
-        return bloomClient.cfExists(keyPrefix + gisJoin, filterEntryFormatRule.apply(point));
+        long response = getCommands().dispatch(
+            new CfExistsCommand(),
+            new IntegerOutput<>(StringCodec.UTF8),
+            new CommandArgs<>(StringCodec.UTF8)
+                .addKey(keyPrefix + gisJoin)
+                .addValue(filterEntryFormatRule.apply(point)));
+        return response == 1;
     }
 
     @Override
     public synchronized void clear(LatLng point, String gisJoin) {
-        bloomClient.cfDel(keyPrefix + gisJoin, filterEntryFormatRule.apply(point));
+        getCommands().dispatch(
+            new CfDeleteCommand(),
+            new IntegerOutput<>(StringCodec.UTF8),
+            new CommandArgs<>(StringCodec.UTF8)
+                .addKey(keyPrefix + gisJoin)
+                .addValue(filterEntryFormatRule.apply(point)));
     }
 
     public void usePrecision(PrecisionContext type, int precision) {
@@ -145,7 +228,7 @@ public class RedisFilterDatabase implements GeosieveDatabase {
             case FILTER_ENTRY: filterEntryFormatRule = newRule; break;
         }
 
-        jedisClient.set(keyPrefix + precisionKeys.get(type), Integer.toString(precision));
+        getCommands().set(keyPrefix + precisionKeys.get(type), Integer.toString(precision));
     }
 
     @Override
@@ -155,9 +238,12 @@ public class RedisFilterDatabase implements GeosieveDatabase {
 
     @Override
     public synchronized void cleanup() {
-        if (jedisClient != null) {
-            jedisClient.close();
-            bloomClient.close();
+        if (client != null) {
+            client.shutdown();
+        }
+
+        if (clusterClient != null) {
+            clusterClient.shutdown();
         }
     }
 }
