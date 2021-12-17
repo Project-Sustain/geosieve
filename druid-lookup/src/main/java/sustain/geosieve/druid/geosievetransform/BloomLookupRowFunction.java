@@ -68,29 +68,36 @@
 package sustain.geosieve.druid.geosievetransform;
 
 import io.lettuce.core.RedisClient;
-import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.cluster.RedisClusterClient;
+import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
 import io.lettuce.core.codec.StringCodec;
 import io.lettuce.core.output.IntegerOutput;
 import io.lettuce.core.protocol.CommandArgs;
 import io.lettuce.core.protocol.ProtocolKeyword;
 import org.apache.druid.data.input.Row;
+import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.segment.transform.RowFunction;
 
 import java.util.HashMap;
 
 public class BloomLookupRowFunction implements RowFunction {
+    private static final Logger logger = new Logger(BloomLookupRowFunction.class);
     private final String lngProperty;
     private final String latProperty;
     private final String prefix;
 
+    private static RedisClusterClient client;
+    private static StatefulRedisClusterConnection<String, String> connection;
     private static RedisClusterCommands<String, String> commands;
 
     private static final String SET_NAME_PRECISION = "__snprecision";
     private static final String FILTER_ENTRY_PRECISION = "__feprecision";
     private static final String LOOKUP_FAILED = "null";
     private static final HashMap<String, String> pointMemo = new HashMap<>();
+
+    private static int setPrecision = -1;
+    private static int entryPrecision = -1;
 
     public static class CfExistsCommand implements ProtocolKeyword {
         public static final String NAME = "CF.EXISTS";
@@ -111,52 +118,87 @@ public class BloomLookupRowFunction implements RowFunction {
     }
 
     public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix, boolean noCluster) {
+        logger.info("making new bloom function");
         this.latProperty = latProperty;
         this.lngProperty = lngProperty;
         this.prefix = prefix;
 
         if (commands == null && !noCluster) {
-            commands = RedisClusterClient.create(String.format("redis://%s:%d", redisHost, redisPort)).connect().sync();
+            client = RedisClusterClient.create(String.format("redis://%s:%d", redisHost, redisPort));
+            connection = client.connect();
+            commands = connection.sync();
         } else if (commands == null) {
             commands = RedisClient.create(String.format("redis://%s:%d", redisHost, redisPort)).connect().sync();
         }
     }
 
     public Object eval(final Row row) {
-        synchronized (commands) {
-            int setNamePrecision = Util.tryParseOrDefault(commands.get(prefix + SET_NAME_PRECISION), 1);
-            int filterMemberPrecision = Util.tryParseOrDefault(commands.get(prefix + FILTER_ENTRY_PRECISION), 0);
+        if (setPrecision == -1) {
+            setPrecision = Util.tryParseOrDefault(commands.get(prefix + SET_NAME_PRECISION), 1);
+        }
 
-            double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
-            double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
+        if (entryPrecision == -1) {
+            entryPrecision = Util.tryParseOrDefault(commands.get(prefix + FILTER_ENTRY_PRECISION), 0);
+        }
 
-            String setPoint = prefix + Util.serialize(lat, lng, setNamePrecision);
-            String entryPoint = (filterMemberPrecision == 0)
-                    ? Util.serialize(lat, lng)
-                    : Util.serialize(lat, lng, filterMemberPrecision);
+        logger.info("got precision set: %d, filter: %d", setPrecision, entryPrecision);
 
-            String memoizedResult;
-            if ((memoizedResult = pointMemo.getOrDefault(entryPoint, null)) != null) {
-                return memoizedResult;
-            }
+        double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
+        double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
 
-            if (commands.exists(setPoint) != 1) {
-                return LOOKUP_FAILED;
-            }
+        logger.info("doing point %f, %f", lat, lng);
 
-            for (String possibleGisJoin : commands.smembers(setPoint)) {
-                if (1 == commands.dispatch(
-                    new CfExistsCommand(),
-                    new IntegerOutput<>(StringCodec.UTF8),
-                    new CommandArgs<>(StringCodec.UTF8)
-                        .addKey(prefix + possibleGisJoin)
-                        .addValue(entryPoint))) {
-                    pointMemo.put(entryPoint, possibleGisJoin);
-                    return possibleGisJoin;
-                }
-            }
+        String setPoint = prefix + Util.serialize(lat, lng, setPrecision);
+        String entryPoint = (entryPrecision == 0)
+                ? Util.serialize(lat, lng)
+                : Util.serialize(lat, lng, entryPrecision);
 
+        logger.info("point is set: %s, entry: %s", lat, lng);
+
+        String memoizedResult;
+        if ((memoizedResult = pointMemo.getOrDefault(entryPoint, null)) != null) {
+            logger.info("found memoized result for %s", entryPoint);
+            return memoizedResult;
+        }
+
+        if (commands.exists(setPoint) != 1) {
+            logger.info("point %s did not exist", setPoint);
             return LOOKUP_FAILED;
         }
+
+        for (String possibleGisJoin : commands.smembers(setPoint)) {
+            if (1 == commands.dispatch(
+                new CfExistsCommand(),
+                new IntegerOutput<>(StringCodec.UTF8),
+                new CommandArgs<>(StringCodec.UTF8)
+                    .addKey(prefix + possibleGisJoin)
+                    .addValue(entryPoint))) {
+                pointMemo.put(entryPoint, possibleGisJoin);
+                logger.info("found GISJOIN %s for point %s", possibleGisJoin, entryPoint);
+                return possibleGisJoin;
+            }
+        }
+
+        logger.info("failed for point %s", setPoint);
+        return LOOKUP_FAILED;
+    }
+
+    public static void disconnect() {
+        if (commands != null) {
+            commands.quit();
+        }
+
+        if (connection != null) {
+            connection.close();
+        }
+
+        if (client != null) {
+            client.shutdown();
+        }
+
+
+        commands = null;
+        connection = null;
+        client = null;
     }
 }
