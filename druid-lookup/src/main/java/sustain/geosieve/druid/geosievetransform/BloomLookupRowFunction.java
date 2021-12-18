@@ -68,6 +68,8 @@
 package sustain.geosieve.druid.geosievetransform;
 
 import io.lettuce.core.RedisClient;
+import io.lettuce.core.TimeoutOptions;
+import io.lettuce.core.cluster.ClusterClientOptions;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
@@ -75,21 +77,28 @@ import io.lettuce.core.codec.StringCodec;
 import io.lettuce.core.output.IntegerOutput;
 import io.lettuce.core.protocol.CommandArgs;
 import io.lettuce.core.protocol.ProtocolKeyword;
+import io.lettuce.core.resource.ClientResources;
+import io.lettuce.core.resource.DefaultEventLoopGroupProvider;
+import io.netty.util.HashedWheelTimer;
 import org.apache.druid.data.input.Row;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.segment.transform.RowFunction;
 
 import java.util.HashMap;
+import java.util.concurrent.ThreadFactory;
 
 public class BloomLookupRowFunction implements RowFunction {
     private static final Logger logger = new Logger(BloomLookupRowFunction.class);
     private final String lngProperty;
     private final String latProperty;
     private final String prefix;
+    private final String host;
+    private final int port;
+    private final boolean cluster;
 
-    private static RedisClusterClient client;
-    private static StatefulRedisClusterConnection<String, String> connection;
-    private static RedisClusterCommands<String, String> commands;
+    private RedisClusterClient client;
+    private StatefulRedisClusterConnection<String, String> connection;
+    private RedisClusterCommands<String, String> commands;
 
     private static final String SET_NAME_PRECISION = "__snprecision";
     private static final String FILTER_ENTRY_PRECISION = "__feprecision";
@@ -118,21 +127,34 @@ public class BloomLookupRowFunction implements RowFunction {
     }
 
     public BloomLookupRowFunction(String redisHost, int redisPort, String latProperty, String lngProperty, String prefix, boolean noCluster) {
-        logger.info("making new bloom function");
         this.latProperty = latProperty;
         this.lngProperty = lngProperty;
         this.prefix = prefix;
 
-        if (commands == null && !noCluster) {
-            client = RedisClusterClient.create(String.format("redis://%s:%d", redisHost, redisPort));
+        this.host = redisHost;
+        this.port = redisPort;
+        this.cluster = !noCluster;
+
+        if (cluster) {
+            ClientResources resources = ClientResources.builder().timer(new HashedWheelTimer(
+                    runnable -> {
+                        Thread t = new Thread(runnable);
+                        t.setDaemon(true);
+                        return t;
+                    }
+            )).build();
+            client = RedisClusterClient.create(resources, String.format("redis://%s:%d", host, port));
+            client.setOptions(ClusterClientOptions.builder().timeoutOptions(TimeoutOptions.builder().timeoutCommands(false).build()).build());
             connection = client.connect();
             commands = connection.sync();
-        } else if (commands == null) {
-            commands = RedisClient.create(String.format("redis://%s:%d", redisHost, redisPort)).connect().sync();
+        } else {
+            commands = RedisClient.create(String.format("redis://%s:%d", host, port)).connect().sync();
         }
     }
 
     public Object eval(final Row row) {
+
+
         if (setPrecision == -1) {
             setPrecision = Util.tryParseOrDefault(commands.get(prefix + SET_NAME_PRECISION), 1);
         }
@@ -141,49 +163,40 @@ public class BloomLookupRowFunction implements RowFunction {
             entryPrecision = Util.tryParseOrDefault(commands.get(prefix + FILTER_ENTRY_PRECISION), 0);
         }
 
-        logger.info("got precision set: %d, filter: %d", setPrecision, entryPrecision);
-
         double lat = Double.parseDouble(row.getDimension(latProperty).get(0));
         double lng = Double.parseDouble(row.getDimension(lngProperty).get(0));
-
-        logger.info("doing point %f, %f", lat, lng);
 
         String setPoint = prefix + Util.serialize(lat, lng, setPrecision);
         String entryPoint = (entryPrecision == 0)
                 ? Util.serialize(lat, lng)
                 : Util.serialize(lat, lng, entryPrecision);
 
-        logger.info("point is set: %s, entry: %s", lat, lng);
-
         String memoizedResult;
         if ((memoizedResult = pointMemo.getOrDefault(entryPoint, null)) != null) {
-            logger.info("found memoized result for %s", entryPoint);
             return memoizedResult;
         }
 
         if (commands.exists(setPoint) != 1) {
-            logger.info("point %s did not exist", setPoint);
             return LOOKUP_FAILED;
         }
 
         for (String possibleGisJoin : commands.smembers(setPoint)) {
             if (1 == commands.dispatch(
-                new CfExistsCommand(),
-                new IntegerOutput<>(StringCodec.UTF8),
-                new CommandArgs<>(StringCodec.UTF8)
-                    .addKey(prefix + possibleGisJoin)
-                    .addValue(entryPoint))) {
+                    new CfExistsCommand(),
+                    new IntegerOutput<>(StringCodec.UTF8),
+                    new CommandArgs<>(StringCodec.UTF8)
+                            .addKey(prefix + possibleGisJoin)
+                            .addValue(entryPoint))) {
                 pointMemo.put(entryPoint, possibleGisJoin);
-                logger.info("found GISJOIN %s for point %s", possibleGisJoin, entryPoint);
                 return possibleGisJoin;
             }
         }
 
-        logger.info("failed for point %s", setPoint);
         return LOOKUP_FAILED;
     }
 
-    public static void disconnect() {
+    @Override
+    protected void finalize() {
         if (commands != null) {
             commands.quit();
         }
@@ -195,10 +208,5 @@ public class BloomLookupRowFunction implements RowFunction {
         if (client != null) {
             client.shutdown();
         }
-
-
-        commands = null;
-        connection = null;
-        client = null;
     }
 }
